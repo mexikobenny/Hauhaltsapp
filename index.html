@@ -35,7 +35,7 @@
   .mnav-btn:active{background:var(--border)}
   .mnav-label{font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;min-width:90px;text-align:center}
   .mnav-label.current{color:var(--accent)}
-  .top-nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none}
+  .top-nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none;position:sticky;top:57px;z-index:99}
   .top-nav::-webkit-scrollbar{display:none}
   .nav-tab{flex-shrink:0;padding:10px 18px;font-size:14px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;transition:color 0.15s,border-color 0.15s}
   .nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
@@ -188,18 +188,14 @@
   .budget-toggle{display:flex;border:1px solid var(--border2);border-radius:20px;overflow:hidden;flex-shrink:0}
   .budget-toggle-btn{padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit}
   .budget-toggle-btn.active{background:var(--accent);color:#fff}
-  .cat-budget-bar{margin-top:6px}
-  .cat-budget-track{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:3px}
-  .cat-budget-fill{height:100%;border-radius:3px;transition:width 0.4s ease}
-  .cat-budget-fill.green{background:#2D6A4F}
-  .cat-budget-fill.yellow{background:#B7621A}
-  .cat-budget-fill.red{background:#C0392B}
-  .cat-budget-info{display:flex;justify-content:space-between;align-items:center}
-  .cat-budget-status{font-size:10px;font-weight:600}
-  .cat-budget-status.green{color:#2D6A4F}
-  .cat-budget-status.yellow{color:#B7621A}
-  .cat-budget-status.red{color:#C0392B}
-  .cat-budget-rest{font-size:10px;color:var(--hint)}
+  .cat-budget-bar{margin-top:5px;display:flex;align-items:center;gap:8px}
+  .cat-budget-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .cat-budget-dot.green{background:#2D6A4F}
+  .cat-budget-dot.yellow{background:#B7621A}
+  .cat-budget-dot.red{background:#C0392B}
+  .cat-budget-text{font-size:10px;color:var(--hint)}
+  .cat-budget-text.red{color:#C0392B;font-weight:500}
+  .cat-budget-text.yellow{color:#B7621A}
   .login-screen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
   .login-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;width:100%;max-width:360px;box-shadow:var(--shadow)}
   .login-title{font-size:24px;font-weight:700;margin-bottom:6px;letter-spacing:-0.5px}
@@ -213,12 +209,46 @@
   .login-error{font-size:13px;color:var(--red);margin-top:8px;text-align:center;min-height:20px}
   .logout-btn{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
   .logout-btn:hover{color:var(--red)}
-  .reisen-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:24px}
-  .reise-kachel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);cursor:pointer}
+  .export-btn{height:46px;background:var(--accent-l);color:var(--accent-t);border:1px solid var(--accent);border-radius:var(--radius-s);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;padding:0 16px;display:flex;align-items:center;gap:6px}
+  .export-btn:active{opacity:0.85}
+  .import-area{border:2px dashed var(--border2);border-radius:var(--radius-s);padding:20px;text-align:center;cursor:pointer;transition:border-color 0.15s}
+  .import-area:hover{border-color:var(--accent)}
+  .import-area-text{font-size:14px;color:var(--muted)}
+  .import-result{font-size:13px;margin-top:10px;padding:10px;border-radius:var(--radius-s);display:none}
+  .import-result.success{background:var(--accent-l);color:var(--accent-t)}
+  .import-result.error{background:var(--red-l);color:var(--red)}
+  .abos-section{margin-bottom:20px}
+  .abos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .abo-kachel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-s);padding:8px 10px;box-shadow:var(--shadow)}
+  .abo-kachel-top{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+  .abo-kachel-icon{font-size:13px}
+  .abo-kachel-type{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px}
+  .abo-kachel-amount{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.5px}
+  .abo-kachel-count{font-size:10px;color:var(--hint);margin-top:1px}
+  .abo-kachel-names{font-size:10px;color:var(--hint);margin-top:3px;line-height:1.3}
+  .abo-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .abo-total{font-size:12px;color:var(--muted)}
+  .abo-edit-btn{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
+  .abo-sheet-list{display:flex;flex-direction:column;gap:0}
+  .abo-sheet-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .abo-sheet-row:last-child{border-bottom:none}
+  .abo-sheet-icon{font-size:18px;width:32px;text-align:center}
+  .abo-sheet-info{flex:1}
+  .abo-sheet-name{font-size:14px;font-weight:500;color:var(--text)}
+  .abo-sheet-amount{font-size:12px;color:var(--hint)}
+  .abo-type-select{height:34px;border:1px solid var(--border2);border-radius:var(--radius-s);background:var(--bg);color:var(--text);font-size:13px;padding:0 8px;outline:none;font-family:inherit;-webkit-appearance:none}
+  .reisen-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}
+  .reise-kachel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer}
   .reise-kachel:active{border-color:var(--border2)}
-  .reise-kachel-icon{font-size:24px;margin-bottom:6px}
-  .reise-kachel-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .reise-kachel-amount{font-size:18px;font-weight:700;color:var(--accent);letter-spacing:-0.5px}
+  .reise-kachel-img{width:100%;height:70px;object-fit:cover;background:var(--accent-l);display:flex;align-items:center;justify-content:center;font-size:24px}
+  .reise-kachel-body{padding:8px 10px}
+  .reise-kachel-icon{font-size:18px;margin-bottom:3px}
+  .reise-kachel-name{font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reise-kachel-amount{font-size:14px;font-weight:700;color:var(--accent);letter-spacing:-0.5px}
+  .reisen-grid-small{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:12px}
+  .reise-kachel-small{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-s);padding:7px 8px;box-shadow:var(--shadow)}
+  .reise-kachel-small-name{font-size:10px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+  .reise-kachel-small-amount{font-size:12px;font-weight:700;color:var(--accent)}
   .tag-section{display:flex;flex-direction:column;gap:8px}
   .typ-tag-grid{display:flex;flex-wrap:wrap;gap:6px}
   .typ-tag-btn{height:32px;padding:0 12px;border-radius:16px;border:1.5px solid var(--border2);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -275,11 +305,23 @@
   <div class="cat-bar-list" id="dashCatBarsJahr"></div>
   <div class="section-title">Letzte 6 Monate</div>
   <div class="month-compare" id="dashMonthCompare"></div>
-  <div class="section-title">Reisen 2026</div>
+  <div class="section-title" id="reisenYearTitle">Reisen 2026</div>
   <div id="dashReisen"></div>
+
+  <div class="abos-section">
+    <div class="abo-header">
+      <div class="section-title" style="margin-bottom:0">Abos</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="abo-total" id="aboTotal"></span>
+        <button class="abo-edit-btn" onclick="openAboSheet()">Verwalten</button>
+      </div>
+    </div>
+    <div class="abos-grid" id="abosGrid"></div>
+  </div>
 </div>
 
 <div class="page" id="page-liste">
+  <div class="filter-bar" id="typTagBar"></div>
   <div class="filter-bar" id="filterBar"></div>
   <div id="listContainer"></div>
 </div>
@@ -291,6 +333,22 @@
   </div>
   <div id="budgetSettingsList"></div>
   <button class="btn-submit" onclick="saveBudgets()" style="margin-top:8px">Speichern</button>
+
+  <div style="margin-top:28px;margin-bottom:12px">
+    <div style="font-size:17px;font-weight:700;color:var(--text)">Daten sichern</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:2px">Export als CSV — Import aus CSV</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <button class="export-btn" onclick="exportCSV()" style="width:100%;justify-content:center">
+      ⬇️ Alle Ausgaben als CSV exportieren
+    </button>
+    <div class="import-area" onclick="document.getElementById('importFileInput').click()">
+      <div class="import-area-text">⬆️ CSV importieren<br><span style="font-size:12px">Tippe um eine Datei auszuwaehlen</span></div>
+      <input type="file" id="importFileInput" accept=".csv" style="display:none" onchange="importCSV(this)">
+    </div>
+    <div class="import-result" id="importResult"></div>
+  </div>
 </div>
 
 <button class="fab" id="fabBtn">+</button>
@@ -359,6 +417,19 @@
     <button class="sheet-close" onclick="closeSheets()">x</button>
   </div>
   <div class="form-body" id="detailBody"></div>
+</div>
+
+<div class="sheet" id="aboSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">Abos verwalten</span>
+    <button class="sheet-close" onclick="closeSheets()">x</button>
+  </div>
+  <div class="form-body">
+    <p style="font-size:13px;color:var(--muted);margin-top:-8px">Weise jedem Abo einen Typ zu. Wird fuer die Dashboard-Uebersicht verwendet.</p>
+    <div id="aboSheetList"></div>
+    <button class="btn-submit" onclick="saveAboTypes()" style="margin-top:8px">Speichern</button>
+  </div>
 </div>
 
 <div class="confirm-box" id="confirmBox">
@@ -490,6 +561,7 @@ let viewYear = new Date().getFullYear();
 let viewMonth = new Date().getMonth();
 let activePage = "dashboard";
 let activeFilter = "alle";
+let activeTypTag = "alle";
 let deleteId = null;
 let selectedCat = "restaurant";
 let selectedTypTag = "";
@@ -524,7 +596,6 @@ onSnapshot(q, function(snap) {
   expenses = snap.docs.map(function(d) { return Object.assign({id:d.id}, d.data()); });
   setSyncStatus("synced", "Synchronisiert");
   renderAll();
-  renderReisenKacheln();
 }, function() { setSyncStatus("error", "Verbindungsfehler"); });
 setSyncStatus("syncing", "Verbinde...");
 
@@ -555,14 +626,22 @@ function renderDashboard() {
   document.getElementById("metricMax").textContent = maxE ? formatEur(maxE.betrag) : "-";
 
   var totalMonthBudget = 0;
+  var totalMonthSpent = 0;
   CATEGORIES.forEach(function(cat) {
-    if (budgets[cat.id] && budgets[cat.id].limit && !isYearView(cat.id)) {
-      totalMonthBudget += budgets[cat.id].limit;
+    if (budgets[cat.id] && budgets[cat.id].limit) {
+      var monthBudget = isYearView(cat.id)
+        ? budgets[cat.id].limit
+        : budgets[cat.id].limit;
+      totalMonthBudget += monthBudget;
+      var monthSpent = monthData(viewYear, viewMonth).filter(function(e) {
+        return e.kategorie === cat.id;
+      }).reduce(function(s, e) { return s + e.betrag; }, 0);
+      totalMonthSpent += monthSpent;
     }
   });
   var budgetInfoEl = document.getElementById("dashBudgetInfo");
   if (totalMonthBudget > 0) {
-    var budgetPct = Math.round(total / totalMonthBudget * 100);
+    var budgetPct = Math.round(totalMonthSpent / totalMonthBudget * 100);
     var colorClass = budgetPct < 70 ? "green" : budgetPct < 90 ? "yellow" : "red";
     budgetInfoEl.innerHTML = "Budget: " + formatEur(totalMonthBudget) + " &mdash; <span class='" + colorClass + "'>" + budgetPct + "% verbraucht</span>";
   } else {
@@ -582,11 +661,11 @@ function renderDashboard() {
   var monthReisenKeys = Object.keys(monthReisen).sort(function(a, b) { return monthReisen[b] - monthReisen[a]; });
   var monthReisenEl = document.getElementById("monthReisenKacheln");
   if (monthReisenKeys.length) {
+    monthReisenEl.className = "reisen-grid-small";
     monthReisenEl.innerHTML = monthReisenKeys.map(function(key) {
-      return "<div class='reise-kachel'>" +
-        "<div class='reise-kachel-icon'>🧳</div>" +
-        "<div class='reise-kachel-name'>" + escHtml(key) + "</div>" +
-        "<div class='reise-kachel-amount'>" + formatEur(monthReisen[key]) + "</div>" +
+      return "<div class='reise-kachel-small'>" +
+        "<div class='reise-kachel-small-name'>🧳 " + escHtml(key) + "</div>" +
+        "<div class='reise-kachel-small-amount'>" + formatEur(monthReisen[key]) + "</div>" +
         "</div>";
     }).join("");
   } else {
@@ -678,6 +757,7 @@ function renderDashboard() {
   }).join("");
 
   renderReisenKacheln();
+  renderAbos();
 }
 
 function buildTagPills(e) {
@@ -698,7 +778,10 @@ function buildTagPills(e) {
 
 function renderReisenKacheln() {
   var allReisen = {};
-  expenses.forEach(function(e) {
+  var yearExpenses = expenses.filter(function(e) {
+    return e.datum && e.datum.startsWith(viewYear.toString());
+  });
+  yearExpenses.forEach(function(e) {
     if (e.reiseTag && e.reiseTag.trim()) {
       var key = e.reiseTag.trim();
       if (!allReisen[key]) allReisen[key] = 0;
@@ -706,6 +789,8 @@ function renderReisenKacheln() {
     }
   });
   var keys = Object.keys(allReisen).sort(function(a, b) { return allReisen[b] - allReisen[a]; });
+  var titleEl = document.getElementById("reisenYearTitle");
+  if (titleEl) titleEl.textContent = "Reisen " + viewYear;
   var el = document.getElementById("dashReisen");
   if (!keys.length) {
     el.innerHTML = "<div style='color:var(--hint);font-size:14px;padding:12px 0'>Noch keine Reisen getaggt. Fuege einer Ausgabe den Tag Reise hinzu.</div>";
@@ -722,7 +807,27 @@ function renderReisenKacheln() {
 
 function renderList() {
   var all = monthData(viewYear, viewMonth);
-  var shown = activeFilter === "alle" ? all : all.filter(function(e) { return e.kategorie === activeFilter; });
+
+  var typBar = document.getElementById("typTagBar");
+  var hasTypTags = all.some(function(e) { return e.typTag && e.typTag.trim(); });
+  if (hasTypTags) {
+    typBar.innerHTML = "<button class='filter-chip " + (activeTypTag === "alle" ? "active" : "") + "' data-typ='alle'>Alle Tags</button>" +
+      TYP_TAGS.map(function(t) {
+        var hasData = all.some(function(e) { return e.typTag === t.id; });
+        if (!hasData) return "";
+        return "<button class='filter-chip " + (activeTypTag === t.id ? "active" : "") + "' data-typ='" + t.id + "'>" + t.label + "</button>";
+      }).join("");
+    typBar.querySelectorAll(".filter-chip").forEach(function(btn) {
+      btn.addEventListener("click", function() { activeTypTag = this.dataset.typ; renderList(); });
+    });
+    typBar.style.display = "";
+  } else {
+    typBar.style.display = "none";
+  }
+
+  var shown = all;
+  if (activeFilter !== "alle") shown = shown.filter(function(e) { return e.kategorie === activeFilter; });
+  if (activeTypTag !== "alle") shown = shown.filter(function(e) { return e.typTag === activeTypTag; });
   var counts = {};
   all.forEach(function(e) { counts[e.kategorie] = (counts[e.kategorie] || 0) + 1; });
   var usedCats = CATEGORIES.filter(function(c) { return counts[c.id]; });
@@ -998,17 +1103,15 @@ function renderBudgetBar(catId) {
   var isYear = isYearView(catId);
   var limit = isYear ? monthLimit * 12 : monthLimit;
   var spent = getBudgetSpent(catId);
-  var pct = Math.min(Math.round(spent / limit * 100), 100);
+  var pct = Math.round(spent / limit * 100);
   var colorClass = pct < 70 ? "green" : pct < 90 ? "yellow" : "red";
-  var statusText = pct < 70 ? "OK" : pct < 90 ? "Achtung" : (spent > limit ? "Ueberschritten" : "Fast voll");
   var rest = limit - spent;
-  var viewLabel = isYear ? "Jahresbudget (" + formatEur(monthLimit) + " x12)" : "Monatsbudget";
+  var restText = rest >= 0
+    ? formatEur(rest) + " uebrig (" + pct + "%)"
+    : formatEur(Math.abs(rest)) + " ueber Budget";
   return "<div class='cat-budget-bar'>" +
-    "<div class='cat-budget-track'><div class='cat-budget-fill " + colorClass + "' style='width:" + pct + "%'></div></div>" +
-    "<div class='cat-budget-info'>" +
-      "<span class='cat-budget-status " + colorClass + "'>" + statusText + " " + pct + "% - " + viewLabel + "</span>" +
-      "<span class='cat-budget-rest'>" + (rest >= 0 ? formatEur(rest) + " uebrig" : formatEur(Math.abs(rest)) + " ueber Budget") + "</span>" +
-    "</div>" +
+    "<div class='cat-budget-dot " + colorClass + "'></div>" +
+    "<span class='cat-budget-text " + colorClass + "'>" + restText + "</span>" +
     "</div>";
 }
 
@@ -1062,6 +1165,219 @@ window.saveBudgets = function() {
   saveBudgetsToStorage();
   showToast("Budgets gespeichert");
   renderAll();
+};
+
+var ABO_TYPES = [
+  {id:"streaming", label:"Streaming", icon:"🎵"},
+  {id:"cloud", label:"Cloud", icon:"☁️"},
+  {id:"transport", label:"Transport", icon:"🚗"},
+  {id:"sport", label:"Sport/Games", icon:"🎮"},
+  {id:"news", label:"News", icon:"📰"},
+  {id:"telefon", label:"Telefon", icon:"📱"},
+  {id:"sonstiges", label:"Sonstiges", icon:"📦"}
+];
+
+var aboTypes = {};
+
+function loadAboTypes() {
+  try {
+    var stored = localStorage.getItem("haushaltsapp_abotypes");
+    aboTypes = stored ? JSON.parse(stored) : {};
+  } catch(e) { aboTypes = {}; }
+}
+
+function saveAboTypesToStorage() {
+  localStorage.setItem("haushaltsapp_abotypes", JSON.stringify(aboTypes));
+}
+
+function autoDetectAboType(name) {
+  var n = name.toLowerCase();
+  if (n.indexOf("spotify") !== -1 || n.indexOf("netflix") !== -1 || n.indexOf("disney") !== -1 || n.indexOf("apple tv") !== -1) return "streaming";
+  if (n.indexOf("icloud") !== -1 || n.indexOf("google one") !== -1 || n.indexOf("dropbox") !== -1) return "cloud";
+  if (n.indexOf("uber") !== -1 || n.indexOf("oebb") !== -1 || n.indexOf("bahn") !== -1) return "transport";
+  if (n.indexOf("kickbase") !== -1 || n.indexOf("gamers") !== -1 || n.indexOf("playstation") !== -1) return "sport";
+  if (n.indexOf("handelsblatt") !== -1 || n.indexOf("zeit") !== -1 || n.indexOf("spiegel") !== -1) return "news";
+  if (n.indexOf("handy") !== -1 || n.indexOf("telefon") !== -1 || n.indexOf("sim") !== -1) return "telefon";
+  return "sonstiges";
+}
+
+function getAboType(expenseId, name) {
+  if (aboTypes[expenseId]) return aboTypes[expenseId];
+  return autoDetectAboType(name);
+}
+
+loadAboTypes();
+
+function renderAbos() {
+  var monthAboExpenses = monthData(viewYear, viewMonth).filter(function(e) { return e.kategorie === "abos"; });
+  var allAboExpenses = expenses.filter(function(e) { return e.kategorie === "abos"; });
+
+  if (!monthAboExpenses.length) {
+    document.getElementById("abosGrid").innerHTML = "<div style='color:var(--hint);font-size:13px;grid-column:span 2'>Keine Abos diesen Monat</div>";
+    document.getElementById("aboTotal").textContent = "";
+    return;
+  }
+
+  var grouped = {};
+  monthAboExpenses.forEach(function(e) {
+    var type = getAboType(e.id, e.name);
+    if (!grouped[type]) grouped[type] = {amount: 0, names: [], ids: []};
+    grouped[type].amount += e.betrag;
+    if (grouped[type].names.indexOf(e.name) === -1) grouped[type].names.push(e.name);
+    grouped[type].ids.push(e.id);
+  });
+
+  var totalMonthly = monthAboExpenses.reduce(function(s, e) { return s + e.betrag; }, 0);
+  document.getElementById("aboTotal").textContent = formatEur(totalMonthly) + " / Monat";
+
+  var sorted = Object.entries(grouped).sort(function(a, b) { return b[1].amount - a[1].amount; });
+
+  document.getElementById("abosGrid").innerHTML = sorted.map(function(entry) {
+    var typeId = entry[0], data = entry[1];
+    var typeInfo = ABO_TYPES.find(function(t) { return t.id === typeId; }) || {icon:"📦", label:"Sonstiges"};
+    var monthAmount = data.amount;
+    var namesList = data.names.slice(0, 3).join(", ") + (data.names.length > 3 ? " +" + (data.names.length - 3) : "");
+    return "<div class='abo-kachel'>" +
+      "<div class='abo-kachel-top'>" +
+        "<span class='abo-kachel-icon'>" + typeInfo.icon + "</span>" +
+        "<span class='abo-kachel-type'>" + typeInfo.label + "</span>" +
+      "</div>" +
+      "<div class='abo-kachel-amount'>" + formatEur(monthAmount) + "</div>" +
+      "<div class='abo-kachel-names'>" + escHtml(namesList) + "</div>" +
+    "</div>";
+  }).join("");
+}
+
+window.openAboSheet = function() {
+  var aboExpenses = expenses.filter(function(e) { return e.kategorie === "abos"; });
+  var unique = {};
+  aboExpenses.forEach(function(e) {
+    if (!unique[e.name]) unique[e.name] = e;
+  });
+
+  document.getElementById("aboSheetList").innerHTML = Object.values(unique).map(function(e) {
+    var currentType = getAboType(e.id, e.name);
+    return "<div class='abo-sheet-row'>" +
+      "<div class='abo-sheet-icon'>" + (ABO_TYPES.find(function(t) { return t.id === currentType; }) || {icon:"📦"}).icon + "</div>" +
+      "<div class='abo-sheet-info'>" +
+        "<div class='abo-sheet-name'>" + escHtml(e.name) + "</div>" +
+        "<div class='abo-sheet-amount'>" + formatEur(e.betrag) + " / Monat</div>" +
+      "</div>" +
+      "<select class='abo-type-select' data-id='" + e.id + "' data-name='" + escHtml(e.name) + "'>" +
+        ABO_TYPES.map(function(t) {
+          return "<option value='" + t.id + "'" + (currentType === t.id ? " selected" : "") + ">" + t.icon + " " + t.label + "</option>";
+        }).join("") +
+      "</select>" +
+    "</div>";
+  }).join("");
+  openSheet("aboSheet");
+};
+
+window.saveAboTypes = function() {
+  var selects = document.querySelectorAll(".abo-type-select");
+  selects.forEach(function(sel) {
+    aboTypes[sel.dataset.id] = sel.value;
+    aboTypes["name_" + sel.dataset.name] = sel.value;
+  });
+  saveAboTypesToStorage();
+  closeSheets();
+  renderAbos();
+  showToast("Abo-Typen gespeichert");
+};
+
+window.exportCSV = function() {
+  var headers = ["Name", "Betrag", "Datum", "Kategorie", "TypTag", "TransportTag", "ReiseTag", "Notiz", "Erfasst am"];
+  var rows = expenses.map(function(e) {
+    return [
+      '"' + (e.name || "").replace(/"/g, '""') + '"',
+      (e.betrag || 0).toFixed(2).replace(".", ","),
+      e.datum || "",
+      e.kategorie || "",
+      e.typTag || "",
+      e.transportTag || "",
+      '"' + (e.reiseTag || "").replace(/"/g, '""') + '"',
+      '"' + (e.notiz || "").replace(/"/g, '""') + '"',
+      e.erfasst_am || ""
+    ].join(";");
+  });
+  var csv = headers.join(";") + "\n" + rows.join("\n");
+
+
+  var blob = new Blob(["﻿" + csv], {type: "text/csv;charset=utf-8;"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "ausgaben_" + new Date().toISOString().slice(0,10) + ".csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("CSV exportiert (" + expenses.length + " Eintraege)");
+};
+
+window.importCSV = async function(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var resultEl = document.getElementById("importResult");
+  resultEl.style.display = "block";
+  resultEl.className = "import-result";
+  resultEl.textContent = "Lese Datei...";
+
+  var reader = new FileReader();
+  reader.onload = async function(ev) {
+    try {
+      var text = ev.target.result;
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      var lines = text.split("
+").filter(function(l) { return l.trim(); });
+      var header = lines[0].split(";");
+      var nameIdx = header.indexOf("Name");
+      var betragIdx = header.indexOf("Betrag");
+      var datumIdx = header.indexOf("Datum");
+      var katIdx = header.indexOf("Kategorie");
+      var typIdx = header.indexOf("TypTag");
+      var transIdx = header.indexOf("TransportTag");
+      var reiseIdx = header.indexOf("ReiseTag");
+      var notizIdx = header.indexOf("Notiz");
+
+      if (nameIdx === -1 || betragIdx === -1 || datumIdx === -1) {
+        resultEl.className = "import-result error";
+        resultEl.textContent = "Fehler: Ungueltige CSV-Datei. Spalten Name, Betrag, Datum werden benoetigt.";
+        return;
+      }
+
+      var imported = 0, skipped = 0;
+      var existingDates = {};
+      expenses.forEach(function(e) { existingDates[e.datum + "_" + e.name + "_" + e.betrag] = true; });
+
+      for (var i = 1; i < lines.length; i++) {
+        var cols = lines[i].split(";").map(function(c) { return c.replace(/^"|"$/g, "").trim(); });
+        var name = cols[nameIdx];
+        var betrag = parseFloat((cols[betragIdx] || "0").replace(",", "."));
+        var datum = cols[datumIdx];
+        if (!name || isNaN(betrag) || !datum) { skipped++; continue; }
+        var key = datum + "_" + name + "_" + betrag;
+        if (existingDates[key]) { skipped++; continue; }
+        await addDoc(expensesCol, {
+          name: name,
+          betrag: betrag,
+          datum: datum,
+          kategorie: cols[katIdx] || "sonstiges",
+          typTag: cols[typIdx] || "",
+          transportTag: cols[transIdx] || "",
+          reiseTag: cols[reiseIdx] || "",
+          notiz: cols[notizIdx] || "",
+          erfasst_am: new Date().toISOString()
+        });
+        imported++;
+      }
+      resultEl.className = "import-result success";
+      resultEl.textContent = imported + " Eintraege importiert, " + skipped + " uebersprungen (bereits vorhanden).";
+      input.value = "";
+    } catch(err) {
+      resultEl.className = "import-result error";
+      resultEl.textContent = "Fehler beim Import: " + err.message;
+    }
+  };
+  reader.readAsText(file, "UTF-8");
 };
 
 function formatEur(n) { return n.toLocaleString("de-DE", {minimumFractionDigits:2, maximumFractionDigits:2}) + " EUR"; }
