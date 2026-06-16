@@ -209,14 +209,7 @@
   .login-error{font-size:13px;color:var(--red);margin-top:8px;text-align:center;min-height:20px}
   .logout-btn{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
   .logout-btn:hover{color:var(--red)}
-  .export-btn{height:46px;background:var(--accent-l);color:var(--accent-t);border:1px solid var(--accent);border-radius:var(--radius-s);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;padding:0 16px;display:flex;align-items:center;gap:6px}
-  .export-btn:active{opacity:0.85}
-  .import-area{border:2px dashed var(--border2);border-radius:var(--radius-s);padding:20px;text-align:center;cursor:pointer;transition:border-color 0.15s}
-  .import-area:hover{border-color:var(--accent)}
-  .import-area-text{font-size:14px;color:var(--muted)}
-  .import-result{font-size:13px;margin-top:10px;padding:10px;border-radius:var(--radius-s);display:none}
-  .import-result.success{background:var(--accent-l);color:var(--accent-t)}
-  .import-result.error{background:var(--red-l);color:var(--red)}
+
   .abos-section{margin-bottom:20px}
   .abos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .abo-kachel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-s);padding:8px 10px;box-shadow:var(--shadow)}
@@ -247,6 +240,8 @@
   .reise-kachel-amount{font-size:14px;font-weight:700;color:var(--accent);letter-spacing:-0.5px}
   .reisen-grid-small{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:12px}
   .reise-kachel-small{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-s);padding:7px 8px;box-shadow:var(--shadow)}
+  .reise-clickable{cursor:pointer}
+  .reise-clickable:active{opacity:0.8}
   .reise-kachel-small-name{font-size:10px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
   .reise-kachel-small-amount{font-size:12px;font-weight:700;color:var(--accent)}
   .tag-section{display:flex;flex-direction:column;gap:8px}
@@ -334,21 +329,6 @@
   <div id="budgetSettingsList"></div>
   <button class="btn-submit" onclick="saveBudgets()" style="margin-top:8px">Speichern</button>
 
-  <div style="margin-top:28px;margin-bottom:12px">
-    <div style="font-size:17px;font-weight:700;color:var(--text)">Daten sichern</div>
-    <div style="font-size:13px;color:var(--muted);margin-top:2px">Export als CSV — Import aus CSV</div>
-  </div>
-
-  <div style="display:flex;flex-direction:column;gap:10px">
-    <button class="export-btn" onclick="exportCSV()" style="width:100%;justify-content:center">
-      ⬇️ Alle Ausgaben als CSV exportieren
-    </button>
-    <div class="import-area" onclick="document.getElementById('importFileInput').click()">
-      <div class="import-area-text">⬆️ CSV importieren<br><span style="font-size:12px">Tippe um eine Datei auszuwaehlen</span></div>
-      <input type="file" id="importFileInput" accept=".csv" style="display:none" onchange="importCSV(this)">
-    </div>
-    <div class="import-result" id="importResult"></div>
-  </div>
 </div>
 
 <button class="fab" id="fabBtn">+</button>
@@ -663,8 +643,8 @@ function renderDashboard() {
   if (monthReisenKeys.length) {
     monthReisenEl.className = "reisen-grid-small";
     monthReisenEl.innerHTML = monthReisenKeys.map(function(key) {
-      return "<div class='reise-kachel-small'>" +
-        "<div class='reise-kachel-small-name'>🧳 " + escHtml(key) + "</div>" +
+      return "<div class='reise-kachel-small reise-clickable' data-reise='" + escHtml(key) + "'>" +
+        "<div class='reise-kachel-small-name'>" + escHtml(key) + "</div>" +
         "<div class='reise-kachel-small-amount'>" + formatEur(monthReisen[key]) + "</div>" +
         "</div>";
     }).join("");
@@ -758,6 +738,18 @@ function renderDashboard() {
 
   renderReisenKacheln();
   renderAbos();
+  attachReiseClicks();
+}
+
+function attachReiseClicks() {
+  var page = document.getElementById("page-dashboard");
+  if (!page._reiseClickAttached) {
+    page.addEventListener("click", function(ev) {
+      var el = ev.target.closest(".reise-clickable");
+      if (el) filterByReise(el);
+    });
+    page._reiseClickAttached = true;
+  }
 }
 
 function buildTagPills(e) {
@@ -797,7 +789,7 @@ function renderReisenKacheln() {
     return;
   }
   el.innerHTML = "<div class='reisen-grid'>" + keys.map(function(key) {
-    return "<div class='reise-kachel'>" +
+    return "<div class='reise-kachel reise-clickable' data-reise='" + escHtml(key) + "'>" +
       "<div class='reise-kachel-icon'>🧳</div>" +
       "<div class='reise-kachel-name'>" + escHtml(key) + "</div>" +
       "<div class='reise-kachel-amount'>" + formatEur(allReisen[key]) + "</div>" +
@@ -893,6 +885,54 @@ window.goToToday = function() { viewYear = today.getFullYear(); viewMonth = toda
 window.handleCatClick = function(el) {
   var catId = el.dataset.catid;
   window.goToCategory(catId);
+};
+
+window.filterByReise = function(el) {
+  var reiseTag = el.dataset.reise;
+  if (!reiseTag) return;
+  activePage = "liste";
+  activeFilter = "alle";
+  activeTypTag = "alle";
+  document.querySelectorAll(".nav-tab").forEach(function(t) { t.classList.remove("active"); });
+  document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
+  document.querySelector("[data-page='liste']").classList.add("active");
+  document.getElementById("page-liste").classList.add("active");
+
+  var data = expenses.filter(function(e) {
+    return e.reiseTag && e.reiseTag.trim() === reiseTag;
+  });
+
+  var bar = document.getElementById("filterBar");
+  bar.innerHTML = "<button class='filter-chip active' onclick='renderList()'>Alle</button>" +
+    "<button class='filter-chip active'>" + escHtml(reiseTag) + "</button>";
+
+  var container = document.getElementById("listContainer");
+  if (!data.length) {
+    container.innerHTML = "<div class='empty-state'><div class='empty-title'>Keine Eintraege</div></div>";
+    return;
+  }
+
+  var groups = {};
+  data.slice().sort(function(a, b) { return new Date(b.datum) - new Date(a.datum); }).forEach(function(e) {
+    if (!groups[e.datum]) groups[e.datum] = [];
+    groups[e.datum].push(e);
+  });
+
+  container.innerHTML = Object.keys(groups).sort(function(a, b) { return b.localeCompare(a); }).map(function(date) {
+    var dayTotal = groups[date].reduce(function(s, e) { return s + e.betrag; }, 0);
+    var d = new Date(date + "T12:00:00");
+    return "<div class='day-group'><div class='day-header'><span class='day-label'>" + formatDayLabel(d) + "</span><span class='day-sum'>" + formatEur(dayTotal) + "</span></div>" +
+      groups[date].map(function(e) {
+        var cat = getCat(e.kategorie);
+        var tags = buildTagPills(e);
+        return "<div class='expense-item' onclick='openDetail("" + e.id + "")'>" +
+          "<div class='cat-icon'>" + cat.icon + "</div>" +
+          "<div class='expense-info'><div class='expense-name'>" + escHtml(e.name) + "</div>" +
+          "<div class='expense-meta'>" + cat.label + (e.notiz ? " - " + escHtml(e.notiz) : "") + "</div>" +
+          (tags ? "<div class='expense-tags'>" + tags + "</div>" : "") +
+          "</div><div class='expense-amount'>" + formatEur(e.betrag) + "</div></div>";
+      }).join("") + "</div>";
+  }).join("");
 };
 
 window.goToCategory = function(catId) {
@@ -1283,101 +1323,6 @@ window.saveAboTypes = function() {
   closeSheets();
   renderAbos();
   showToast("Abo-Typen gespeichert");
-};
-
-window.exportCSV = function() {
-  var headers = ["Name", "Betrag", "Datum", "Kategorie", "TypTag", "TransportTag", "ReiseTag", "Notiz", "Erfasst am"];
-  var rows = expenses.map(function(e) {
-    return [
-      '"' + (e.name || "").replace(/"/g, '""') + '"',
-      (e.betrag || 0).toFixed(2).replace(".", ","),
-      e.datum || "",
-      e.kategorie || "",
-      e.typTag || "",
-      e.transportTag || "",
-      '"' + (e.reiseTag || "").replace(/"/g, '""') + '"',
-      '"' + (e.notiz || "").replace(/"/g, '""') + '"',
-      e.erfasst_am || ""
-    ].join(";");
-  });
-  var csv = headers.join(";") + "\n" + rows.join("\n");
-
-
-  var blob = new Blob(["﻿" + csv], {type: "text/csv;charset=utf-8;"});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement("a");
-  a.href = url;
-  a.download = "ausgaben_" + new Date().toISOString().slice(0,10) + ".csv";
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast("CSV exportiert (" + expenses.length + " Eintraege)");
-};
-
-window.importCSV = async function(input) {
-  var file = input.files[0];
-  if (!file) return;
-  var resultEl = document.getElementById("importResult");
-  resultEl.style.display = "block";
-  resultEl.className = "import-result";
-  resultEl.textContent = "Lese Datei...";
-
-  var reader = new FileReader();
-  reader.onload = async function(ev) {
-    try {
-      var text = ev.target.result;
-      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-      var lines = text.split("
-").filter(function(l) { return l.trim(); });
-      var header = lines[0].split(";");
-      var nameIdx = header.indexOf("Name");
-      var betragIdx = header.indexOf("Betrag");
-      var datumIdx = header.indexOf("Datum");
-      var katIdx = header.indexOf("Kategorie");
-      var typIdx = header.indexOf("TypTag");
-      var transIdx = header.indexOf("TransportTag");
-      var reiseIdx = header.indexOf("ReiseTag");
-      var notizIdx = header.indexOf("Notiz");
-
-      if (nameIdx === -1 || betragIdx === -1 || datumIdx === -1) {
-        resultEl.className = "import-result error";
-        resultEl.textContent = "Fehler: Ungueltige CSV-Datei. Spalten Name, Betrag, Datum werden benoetigt.";
-        return;
-      }
-
-      var imported = 0, skipped = 0;
-      var existingDates = {};
-      expenses.forEach(function(e) { existingDates[e.datum + "_" + e.name + "_" + e.betrag] = true; });
-
-      for (var i = 1; i < lines.length; i++) {
-        var cols = lines[i].split(";").map(function(c) { return c.replace(/^"|"$/g, "").trim(); });
-        var name = cols[nameIdx];
-        var betrag = parseFloat((cols[betragIdx] || "0").replace(",", "."));
-        var datum = cols[datumIdx];
-        if (!name || isNaN(betrag) || !datum) { skipped++; continue; }
-        var key = datum + "_" + name + "_" + betrag;
-        if (existingDates[key]) { skipped++; continue; }
-        await addDoc(expensesCol, {
-          name: name,
-          betrag: betrag,
-          datum: datum,
-          kategorie: cols[katIdx] || "sonstiges",
-          typTag: cols[typIdx] || "",
-          transportTag: cols[transIdx] || "",
-          reiseTag: cols[reiseIdx] || "",
-          notiz: cols[notizIdx] || "",
-          erfasst_am: new Date().toISOString()
-        });
-        imported++;
-      }
-      resultEl.className = "import-result success";
-      resultEl.textContent = imported + " Eintraege importiert, " + skipped + " uebersprungen (bereits vorhanden).";
-      input.value = "";
-    } catch(err) {
-      resultEl.className = "import-result error";
-      resultEl.textContent = "Fehler beim Import: " + err.message;
-    }
-  };
-  reader.readAsText(file, "UTF-8");
 };
 
 function formatEur(n) { return n.toLocaleString("de-DE", {minimumFractionDigits:2, maximumFractionDigits:2}) + " EUR"; }
