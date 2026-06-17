@@ -444,7 +444,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -463,6 +463,11 @@ const expensesCol = collection(db, "expenses");
 /* Offline-Modus temporaer deaktiviert */
 
 var unsubscribeSnapshot = null;
+var budgets = {};
+var aboTypes = {};
+var YEAR_BUDGET_CATS = ["reisen", "kleidung", "sonstiges"];
+var ICON_LUGGAGE = String.fromCodePoint(0x1F9F3);
+var ICON_MAILBOX = String.fromCodePoint(0x1F4ED);
 
 window.doLogin = async function() {
   var email = document.getElementById("loginEmail").value.trim();
@@ -491,6 +496,7 @@ onAuthStateChanged(auth, function(user) {
         setSyncStatus("synced", "Synchronisiert");
         renderAll();
       }, function() { setSyncStatus("error", "Verbindungsfehler"); });
+      loadSettingsFromFirebase();
     }
   } else {
     document.getElementById("loginScreen").style.display = "flex";
@@ -498,6 +504,40 @@ onAuthStateChanged(auth, function(user) {
     expenses = [];
   }
 });
+
+var settingsLoaded = false;
+
+async function loadSettingsFromFirebase() {
+  try {
+    var snap = await getDoc(doc(db, "settings", "main"));
+    if (snap.exists()) {
+      var data = snap.data();
+      if (data.budgets) {
+        budgets = data.budgets;
+        localStorage.setItem("haushaltsapp_budgets_v2", JSON.stringify(budgets));
+      }
+      if (data.aboTypes) {
+        aboTypes = data.aboTypes;
+        localStorage.setItem("haushaltsapp_abotypes", JSON.stringify(aboTypes));
+      }
+    }
+    settingsLoaded = true;
+    renderAll();
+  } catch(e) {
+    settingsLoaded = true;
+  }
+}
+
+async function saveSettingsToFirebase() {
+  if (!settingsLoaded) return;
+  try {
+    await setDoc(doc(db, "settings", "main"), {
+      budgets: budgets,
+      aboTypes: aboTypes,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) {}
+}
 
 const CATEGORIES = [
   {id:"lebensmittel",label:"Lebensmittel",icon:"🫒"},
@@ -696,7 +736,7 @@ function renderDashboard() {
     var budgetBar = renderBudgetBar(id);
     return "<div class='cat-bar-row' style='cursor:pointer' data-catid='" + id + "' onclick='handleCatClick(this)'>" +
       "<div class='cat-bar-top'>" +
-        "<span class='cat-bar-name'>" + cat.icon + " " + cat.label + (isYear ? " <span style='font-size:10px;color:var(--hint)'>(Jahr)</span>" : "") + " <span style='font-size:12px;color:var(--accent)'>›</span></span>" +
+        "<span class='cat-bar-name'>" + cat.icon + " " + cat.label + (isYear ? " <span style='font-size:10px;color:var(--hint)'>(Jahr)</span>" : "") + " <span style='font-size:12px;color:var(--accent)'>&rsaquo;</span></span>" +
         "<span><span class='cat-bar-amount'>" + formatEur(amt) + "</span>" + (!isYear ? "<span class='cat-bar-pct'>" + pct + "%</span>" : "") + "</span>" +
       "</div>" +
       "<div class='cat-bar-track'><div class='cat-bar-fill' style='width:" + barW + "%'></div></div>" +
@@ -790,7 +830,7 @@ function renderReisenKacheln() {
   }
   el.innerHTML = "<div class='reisen-grid'>" + keys.map(function(key) {
     return "<div class='reise-kachel reise-clickable' data-reise='" + escHtml(key) + "'>" +
-      "<div class='reise-kachel-icon'>🧳</div>" +
+      "<div class='reise-kachel-icon'>" + ICON_LUGGAGE + "</div>" +
       "<div class='reise-kachel-name'>" + escHtml(key) + "</div>" +
       "<div class='reise-kachel-amount'>" + formatEur(allReisen[key]) + "</div>" +
       "</div>";
@@ -832,7 +872,7 @@ function renderList() {
 
   var container = document.getElementById("listContainer");
   if (!shown.length) {
-    container.innerHTML = "<div class='empty-state'><div class='empty-icon'>📭</div><div class='empty-title'>Keine Ausgaben</div><div class='empty-sub'>Tippe auf + um loszulegen</div></div>";
+    container.innerHTML = "<div class='empty-state'><div class='empty-icon'>" + ICON_MAILBOX + "</div><div class='empty-title'>Keine Ausgaben</div><div class='empty-sub'>Tippe auf + um loszulegen</div></div>";
     return;
   }
   var groups = {};
@@ -1105,9 +1145,6 @@ window.closeSheets = function() {
   document.querySelectorAll(".sheet").forEach(function(s) { s.classList.remove("open"); });
 };
 
-var budgets = {};
-var YEAR_BUDGET_CATS = ["reisen", "kleidung", "sonstiges"];
-
 function loadBudgets() {
   try {
     var stored = localStorage.getItem("haushaltsapp_budgets_v2");
@@ -1117,6 +1154,7 @@ function loadBudgets() {
 
 function saveBudgetsToStorage() {
   localStorage.setItem("haushaltsapp_budgets_v2", JSON.stringify(budgets));
+  saveSettingsToFirebase();
 }
 
 loadBudgets();
@@ -1217,8 +1255,6 @@ var ABO_TYPES = [
   {id:"sonstiges", label:"Sonstiges", icon:"📦"}
 ];
 
-var aboTypes = {};
-
 function loadAboTypes() {
   try {
     var stored = localStorage.getItem("haushaltsapp_abotypes");
@@ -1228,6 +1264,7 @@ function loadAboTypes() {
 
 function saveAboTypesToStorage() {
   localStorage.setItem("haushaltsapp_abotypes", JSON.stringify(aboTypes));
+  saveSettingsToFirebase();
 }
 
 function autoDetectAboType(name) {
