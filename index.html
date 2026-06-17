@@ -1478,23 +1478,25 @@ reiseInput.addEventListener("blur", function() {
 });
 
 var nameInput = document.getElementById("fName");
-nameInput.addEventListener("blur", function() {
+function applyNameSuggestion() {
   if (catManuallySet) return;
   var editId = document.getElementById("editId").value;
   if (editId) return;
-  var sug = suggestFromName(this.value);
+  var sug = suggestFromName(nameInput.value);
   if (!sug) return;
   selectedCat = sug.kategorie;
   if (sug.typTags && sug.typTags.length) {
     selectedTypTags = sug.typTags.slice();
+  } else {
+    selectedTypTags = [];
   }
-  if (sug.transportTag) {
-    document.getElementById("fTransport").value = sug.transportTag;
-  }
+  document.getElementById("fTransport").value = sug.transportTag || "";
   renderCatGrid();
   renderTypTagGrid();
   updateTagFields();
-});
+}
+nameInput.addEventListener("input", applyNameSuggestion);
+nameInput.addEventListener("blur", applyNameSuggestion);
 
 function suggestFromName(name) {
   var n = (name || "").trim().toLowerCase();
