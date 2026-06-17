@@ -209,6 +209,8 @@
   .login-error{font-size:13px;color:var(--red);margin-top:8px;text-align:center;min-height:20px}
   .logout-btn{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
   .logout-btn:hover{color:var(--red)}
+  .export-btn{height:46px;background:var(--accent-l);color:var(--accent-t);border:1px solid var(--accent);border-radius:var(--radius-s);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;padding:0 16px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px}
+  .export-btn:active{opacity:0.85}
 
   .abos-section{margin-bottom:20px}
   .abos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -328,6 +330,12 @@
   </div>
   <div id="budgetSettingsList"></div>
   <button class="btn-submit" onclick="saveBudgets()" style="margin-top:8px">Speichern</button>
+
+  <div style="margin-top:28px;margin-bottom:12px">
+    <div style="font-size:17px;font-weight:700;color:var(--text)">Daten sichern</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:2px">Alle Ausgaben als CSV-Datei herunterladen</div>
+  </div>
+  <button class="export-btn" onclick="exportCSV()">Als CSV exportieren</button>
 
 </div>
 
@@ -1361,6 +1369,47 @@ window.saveAboTypes = function() {
   renderAbos();
   showToast("Abo-Typen gespeichert");
 };
+
+window.exportCSV = function() {
+  var NL = String.fromCharCode(10);
+  var SEP = ";";
+  var headers = ["Name", "Betrag", "Datum", "Kategorie", "TypTag", "TransportTag", "ReiseTag", "Notiz", "Erfasst am"];
+  var allRows = [headers.join(SEP)];
+  expenses.forEach(function(e) {
+    var row = [
+      csvCell(e.name),
+      (e.betrag || 0).toFixed(2).replace(".", ","),
+      e.datum || "",
+      e.kategorie || "",
+      e.typTag || "",
+      e.transportTag || "",
+      csvCell(e.reiseTag),
+      csvCell(e.notiz),
+      e.erfasst_am || ""
+    ];
+    allRows.push(row.join(SEP));
+  });
+  var csv = allRows.join(NL);
+  var bom = String.fromCharCode(0xFEFF);
+  var blob = new Blob([bom + csv], {type: "text/csv;charset=utf-8;"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "ausgaben_" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("CSV exportiert (" + expenses.length + " Eintraege)");
+};
+
+function csvCell(val) {
+  var s = (val || "").toString();
+  if (s.indexOf(";") !== -1 || s.indexOf(String.fromCharCode(10)) !== -1 || s.indexOf("\"") !== -1) {
+    return "\"" + s.split("\"").join("\"\"") + "\"";
+  }
+  return s;
+}
 
 function formatEur(n) { return n.toLocaleString("de-DE", {minimumFractionDigits:2, maximumFractionDigits:2}) + " EUR"; }
 function formatDayLabel(d) {
