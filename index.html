@@ -644,6 +644,7 @@ let activeTypTag = "alle";
 let deleteId = null;
 let selectedCat = "restaurant";
 let selectedTypTags = [];
+let catManuallySet = false;
 const today = new Date();
 
 function getCat(id) {
@@ -1419,6 +1420,7 @@ document.getElementById("fabBtn").addEventListener("click", function() {
   document.getElementById("fTransport").value = "";
   selectedCat = "restaurant";
   selectedTypTags = [];
+  catManuallySet = false;
   renderCatGrid();
   renderTypTagGrid();
   updateTagFields();
@@ -1446,7 +1448,7 @@ function updateTagFields() {
   document.getElementById("reiseWrap").style.display = (selectedTypTags.indexOf("reise") !== -1) ? "flex" : "none";
 }
 
-window.selectCat = function(id) { selectedCat = id; renderCatGrid(); };
+window.selectCat = function(id) { selectedCat = id; catManuallySet = true; renderCatGrid(); };
 window.selectTypTag = function(el) {
   var id = el.dataset.typid;
   var idx = selectedTypTags.indexOf(id);
@@ -1474,6 +1476,86 @@ reiseInput.addEventListener("input", function() {
 reiseInput.addEventListener("blur", function() {
   setTimeout(function() { reiseSuggestions.classList.remove("open"); }, 200);
 });
+
+var nameInput = document.getElementById("fName");
+nameInput.addEventListener("blur", function() {
+  if (catManuallySet) return;
+  var editId = document.getElementById("editId").value;
+  if (editId) return;
+  var sug = suggestFromName(this.value);
+  if (!sug) return;
+  selectedCat = sug.kategorie;
+  if (sug.typTags && sug.typTags.length) {
+    selectedTypTags = sug.typTags.slice();
+  }
+  if (sug.transportTag) {
+    document.getElementById("fTransport").value = sug.transportTag;
+  }
+  renderCatGrid();
+  renderTypTagGrid();
+  updateTagFields();
+});
+
+function suggestFromName(name) {
+  var n = (name || "").trim().toLowerCase();
+  if (!n) return null;
+
+  var matches = expenses.filter(function(e) {
+    return e.name && e.name.trim().toLowerCase() === n;
+  });
+  if (!matches.length && n.length >= 3) {
+    matches = expenses.filter(function(e) {
+      return e.name && e.name.trim().toLowerCase().indexOf(n) !== -1;
+    });
+  }
+  if (matches.length) {
+    var catCount = {};
+    matches.forEach(function(e) { catCount[e.kategorie] = (catCount[e.kategorie] || 0) + 1; });
+    var bestCat = Object.keys(catCount).sort(function(a, b) { return catCount[b] - catCount[a]; })[0];
+    var recent = matches.slice().sort(function(a, b) { return new Date(b.datum) - new Date(a.datum); })[0];
+    var tags = (recent.typTags && recent.typTags.length) ? recent.typTags.slice() : (recent.typTag ? [recent.typTag] : []);
+    return {
+      kategorie: bestCat,
+      typTags: tags,
+      transportTag: recent.transportTag || ""
+    };
+  }
+
+  return keywordSuggest(n);
+}
+
+function keywordSuggest(n) {
+  var rules = [
+    {w: ["rewe","edeka","aldi","lidl","hofer","billa","spar","penny","supermarkt","kaufland","netto"], cat: "lebensmittel"},
+    {w: ["dm","rossmann","drogerie","waschmittel"], cat: "haushalt"},
+    {w: ["doner","pizza","restaurant","burger","sushi","bowl","kuchen","baecker","backerei","mcdonald","kfc","nordsee","imbiss","essen","brezel","kebab"], cat: "restaurant"},
+    {w: ["bier","drinks","cocktail","wein","spritz","kaffee","cafe","drink","aperol"], cat: "drinks"},
+    {w: ["spotify","netflix","icloud","disney","youtube","abo","handelsblatt","kickbase","uber one","handy"], cat: "abos"},
+    {w: ["miete"], cat: "miete"},
+    {w: ["zigarette","snuuse","tabak","zig"], cat: "zigaretten"},
+    {w: ["padel","badminton","sport","fitness","gym","tennis"], cat: "sport"},
+    {w: ["geschenk"], cat: "geschenke"},
+    {w: ["apotheke","arzt","medikament","kontaktlinsen","lamisil"], cat: "gesundheit"},
+    {w: ["versicherung","bu","hdi"], cat: "versicherung"},
+    {w: ["club","eintritt","rave"], cat: "club"}
+  ];
+  var i, j;
+  for (i = 0; i < rules.length; i++) {
+    for (j = 0; j < rules[i].w.length; j++) {
+      if (n.indexOf(rules[i].w[j]) !== -1) {
+        return { kategorie: rules[i].cat, typTags: [], transportTag: "" };
+      }
+    }
+  }
+
+  // Transport with sub-type
+  if (n.indexOf("flug") !== -1) return { kategorie: "nahverkehr", typTags: ["transport"], transportTag: "flug" };
+  if (n.indexOf("bahn") !== -1 || n.indexOf("zug") !== -1 || n.indexOf("oebb") !== -1 || n.indexOf("ice") !== -1) return { kategorie: "nahverkehr", typTags: ["transport"], transportTag: "fernverkehr" };
+  if (n.indexOf("uber") !== -1 || n.indexOf("taxi") !== -1) return { kategorie: "nahverkehr", typTags: ["transport"], transportTag: "uber" };
+  if (n.indexOf("wl") !== -1 || n.indexOf("nahverkehr") !== -1 || n.indexOf("ticket") !== -1) return { kategorie: "nahverkehr", typTags: ["transport"], transportTag: "nahverkehr" };
+
+  return null;
+}
 
 window.pickReiseTag = function(val) {
   document.getElementById("fReise").value = val;
@@ -1546,6 +1628,7 @@ window.editExpense = function(id) {
   document.getElementById("fReise").value = e.reiseTag || "";
   document.getElementById("fTransport").value = e.transportTag || "";
   selectedCat = e.kategorie;
+  catManuallySet = true;
   if (e.typTags && e.typTags.length) {
     selectedTypTags = e.typTags.slice();
   } else if (e.typTag) {
