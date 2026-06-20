@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import Januar-April 2026</title>
+<style>
+  body{font-family:-apple-system,system-ui,sans-serif;background:#F7F6F3;color:#1A1917;max-width:480px;margin:0 auto;padding:24px}
+  h1{font-size:20px}
+  .card{background:#fff;border:1px solid #E8E6E1;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+  input{width:100%;height:44px;border:1px solid #D4D1CB;border-radius:8px;padding:0 12px;font-size:16px;margin-bottom:10px;box-sizing:border-box}
+  button{width:100%;height:48px;background:#2D6A4F;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer}
+  button:disabled{opacity:0.5}
+  .warn{background:#FDF0EE;border:1px solid #C0392B;color:#C0392B;padding:12px;border-radius:8px;font-size:14px;margin-bottom:16px}
+  .log{font-size:13px;color:#6B6860;margin-top:12px;white-space:pre-line;max-height:300px;overflow-y:auto}
+  .ok{color:#2D6A4F;font-weight:600}
+</style>
+</head>
+<body>
+<h1>Import Januar-April 2026</h1>
+<div class="warn"><b>Wichtig:</b> Diese Seite nur EINMAL ausfuehren, sonst entstehen doppelte Eintraege. Es werden 167 Ausgaben hinzugefuegt.</div>
+
+<div class="card" id="loginCard">
+  <p style="font-size:14px;color:#6B6860;margin-top:0">Melde dich mit deinem App-Login an:</p>
+  <input type="email" id="email" placeholder="E-Mail" autocomplete="email">
+  <input type="password" id="password" placeholder="Passwort" autocomplete="current-password">
+  <button onclick="doLogin()">Anmelden</button>
+  <div class="log" id="loginLog"></div>
+</div>
+
+<div class="card" id="importCard" style="display:none">
+  <p style="font-size:14px;margin-top:0">Eingeloggt. Bereit zum Import von <b>167</b> Eintraegen.</p>
+  <button onclick="startImport()" id="importBtn">Import starten</button>
+  <div class="log" id="importLog"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.9.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD946xyizK8ko1kTePN_bo7kCI-n4_w9Hc",
+  authDomain: "haushaltsapp-b712e.firebaseapp.com",
+  projectId: "haushaltsapp-b712e",
+  storageBucket: "haushaltsapp-b712e.firebasestorage.app",
+  messagingSenderId: "254629616496",
+  appId: "1:254629616496:web:413877ca04c830bd32cdb5"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const expensesCol = collection(db, "expenses");
+
+const ENTRIES = [
+  {
+    "name": "Spotify",
+    "betrag": 5.59,
+    "datum": "2026-01-02",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Essen auf Hütte",
+    "betrag": 37.0,
+    "datum": "2026-01-02",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Silvester"
+  },
+  {
+    "name": "1 Skitag",
+    "betrag": 78.5,
+    "datum": "2026-01-02",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Silvester Schladming",
+    "betrag": 143.0,
+    "datum": "2026-01-04",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Silvester"
+  },
+  {
+    "name": "Kissen",
+    "betrag": 50.0,
+    "datum": "2026-01-04",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Penny",
+    "betrag": 22.75,
+    "datum": "2026-01-03",
+    "kategorie": "lebensmittel",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Oebb Vorteilscard",
+    "betrag": 72.0,
+    "datum": "2026-01-05",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Padel",
+    "betrag": 20.0,
+    "datum": "2026-01-05",
+    "kategorie": "sport",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Brezel",
+    "betrag": 2.8,
+    "datum": "2026-01-05",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Snuuse",
+    "betrag": 21.0,
+    "datum": "2026-01-05",
+    "kategorie": "zigaretten",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Alex Geschenk",
+    "betrag": 20.0,
+    "datum": "2026-01-06",
+    "kategorie": "geschenke",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Isle of Summer ticket",
+    "betrag": 72.79,
+    "datum": "2026-01-09",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Hofer",
+    "betrag": 16.99,
+    "datum": "2026-01-09",
+    "kategorie": "lebensmittel",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Kontaktlinsen",
+    "betrag": 30.0,
+    "datum": "2026-01-10",
+    "kategorie": "haushalt",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "DM",
+    "betrag": 12.75,
+    "datum": "2026-01-10",
+    "kategorie": "haushalt",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Skier",
+    "betrag": 538.75,
+    "datum": "2026-01-10",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Billa",
+    "betrag": 2.81,
+    "datum": "2026-01-10",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Döner",
+    "betrag": 5.3,
+    "datum": "2026-01-09",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 9.0,
+    "datum": "2026-01-10",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Drinks Alex GB",
+    "betrag": 15.0,
+    "datum": "2026-01-11",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Pommes und Chicken",
+    "betrag": 9.25,
+    "datum": "2026-01-16",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Padel",
+    "betrag": 10.0,
+    "datum": "2026-01-17",
+    "kategorie": "sport",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 9.7,
+    "datum": "2026-01-17",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Drinks Hofer",
+    "betrag": 13.25,
+    "datum": "2026-01-17",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Asia Nudeln",
+    "betrag": 12.5,
+    "datum": "2026-01-17",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Schawarma",
+    "betrag": 19.53,
+    "datum": "2026-01-18",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "HDI",
+    "betrag": 54.5,
+    "datum": "2026-01-19",
+    "kategorie": "versicherung",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Icloud",
+    "betrag": 9.99,
+    "datum": "2026-01-21",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Kickbase",
+    "betrag": 4.99,
+    "datum": "2026-01-27",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Niederlande - Amsterdam"
+  },
+  {
+    "name": "T-Shirt",
+    "betrag": 14.99,
+    "datum": "2026-01-25",
+    "kategorie": "kleidung",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Foodhallen + Cafe",
+    "betrag": 49.9,
+    "datum": "2026-01-25",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Niederlande - Amsterdam"
+  },
+  {
+    "name": "Burger",
+    "betrag": 24.64,
+    "datum": "2026-01-24",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Niederlande - Amsterdam"
+  },
+  {
+    "name": "Snacks",
+    "betrag": 8.73,
+    "datum": "2026-01-24",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Niederlande - Amsterdam"
+  },
+  {
+    "name": "Miete",
+    "betrag": 631.0,
+    "datum": "2026-01-23",
+    "kategorie": "miete",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Restaurant + Drinks Fr",
+    "betrag": 55.5,
+    "datum": "2026-01-23",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Niederlande - Amsterdam"
+  },
+  {
+    "name": "Anne Frank Huis und Stadion",
+    "betrag": 50.0,
+    "datum": "2026-01-24",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Niederlande - Amsterdam"
+  },
+  {
+    "name": "Samstags Drinks + Food",
+    "betrag": 50.1,
+    "datum": "2026-01-24",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Niederlande - Amsterdam"
+  },
+  {
+    "name": "Friseur",
+    "betrag": 22.0,
+    "datum": "2026-01-29",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Snuuse",
+    "betrag": 18.0,
+    "datum": "2026-01-29",
+    "kategorie": "zigaretten",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Spotify",
+    "betrag": 5.5,
+    "datum": "2026-02-02",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 9.0,
+    "datum": "2026-01-31",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Uber One",
+    "betrag": 8.99,
+    "datum": "2026-02-02",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Bella Santi",
+    "betrag": 23.95,
+    "datum": "2026-02-01",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Spar",
+    "betrag": 26.26,
+    "datum": "2026-01-31",
+    "kategorie": "lebensmittel",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Drinks",
+    "betrag": 15.0,
+    "datum": "2026-01-31",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Grieche",
+    "betrag": 22.94,
+    "datum": "2026-01-30",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Temu",
+    "betrag": 27.02,
+    "datum": "2026-02-03",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Augustiner Keller Bier",
+    "betrag": 7.0,
+    "datum": "2026-02-06",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Daria's 30er"
+  },
+  {
+    "name": "Augustiner Keller Essen",
+    "betrag": 20.0,
+    "datum": "2026-02-06",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Daria's 30er"
+  },
+  {
+    "name": "Brunch MUC",
+    "betrag": 15.0,
+    "datum": "2026-02-07",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Daria's 30er"
+  },
+  {
+    "name": "Kaffee @ Brunch MUC",
+    "betrag": 4.0,
+    "datum": "2026-02-07",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Daria's 30er"
+  },
+  {
+    "name": "Saarbrücken-Marburg",
+    "betrag": 69.05,
+    "datum": "2026-03-29",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise",
+      "transport"
+    ],
+    "typTag": "reise",
+    "transportTag": "fernverkehr",
+    "reiseTag": "Deutschland - Kernbach"
+  },
+  {
+    "name": "Caldern - Kassel",
+    "betrag": 27.35,
+    "datum": "2026-04-06",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise",
+      "transport"
+    ],
+    "typTag": "reise",
+    "transportTag": "fernverkehr",
+    "reiseTag": "Deutschland - Kernbach"
+  },
+  {
+    "name": "Bier im Englischen Garten",
+    "betrag": 7.8,
+    "datum": "2026-02-07",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Daria's 30er"
+  },
+  {
+    "name": "Drinks - Don’t Tell bar und Kölsch Bar",
+    "betrag": 89.8,
+    "datum": "2026-02-07",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Daria's 30er"
+  },
+  {
+    "name": "BK + L’osteria",
+    "betrag": 59.71,
+    "datum": "2026-02-09",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Daria's 30er"
+  },
+  {
+    "name": "Skitasche und Handy Folie",
+    "betrag": 58.04,
+    "datum": "2026-02-11",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Steuernachzahlung 2024",
+    "betrag": 556.0,
+    "datum": "2026-02-13",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Hofer",
+    "betrag": 18.26,
+    "datum": "2026-02-13",
+    "kategorie": "lebensmittel",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Waschmittel",
+    "betrag": 3.49,
+    "datum": "2026-02-13",
+    "kategorie": "haushalt",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Snuuse",
+    "betrag": 12.0,
+    "datum": "2026-02-13",
+    "kategorie": "zigaretten",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 3.0,
+    "datum": "2026-02-15",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Topgolf",
+    "betrag": 30.0,
+    "datum": "2026-02-14",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Burger topgolf",
+    "betrag": 15.0,
+    "datum": "2026-02-14",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Drinks Samstag",
+    "betrag": 42.0,
+    "datum": "2026-02-14",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Eintritt Rave",
+    "betrag": 10.0,
+    "datum": "2026-02-14",
+    "kategorie": "club",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Shawarma",
+    "betrag": 19.79,
+    "datum": "2026-02-15",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Icloud",
+    "betrag": 9.99,
+    "datum": "2026-02-19",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Anzugreinigung",
+    "betrag": 27.4,
+    "datum": "2026-02-21",
+    "kategorie": "haushalt",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Geschenk Daria",
+    "betrag": 37.7,
+    "datum": "2026-02-21",
+    "kategorie": "geschenke",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Geldabheben",
+    "betrag": 4.0,
+    "datum": "2026-02-21",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Zeitung",
+    "betrag": 5.2,
+    "datum": "2026-02-21",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Snuuse",
+    "betrag": 12.0,
+    "datum": "2026-02-21",
+    "kategorie": "zigaretten",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 3.0,
+    "datum": "2026-02-21",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Asiatiasch",
+    "betrag": 28.35,
+    "datum": "2026-02-22",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Lemon Wings",
+    "betrag": 10.5,
+    "datum": "2026-02-20",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Döner",
+    "betrag": 6.3,
+    "datum": "2026-02-21",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Käsekrainer",
+    "betrag": 5.0,
+    "datum": "2026-02-21",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Bier and Shots Jakob GB",
+    "betrag": 15.0,
+    "datum": "2026-02-21",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Miete",
+    "betrag": 675.0,
+    "datum": "2026-02-23",
+    "kategorie": "miete",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "BU",
+    "betrag": 54.4,
+    "datum": "2026-02-15",
+    "kategorie": "versicherung",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Kickbase",
+    "betrag": 4.99,
+    "datum": "2026-02-25",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Snuuse",
+    "betrag": 18.0,
+    "datum": "2026-02-25",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Februar"
+  },
+  {
+    "name": "Schladming Skipass",
+    "betrag": 235.5,
+    "datum": "2026-02-28",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Februar"
+  },
+  {
+    "name": "Skianpassung",
+    "betrag": 21.0,
+    "datum": "2026-02-28",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Februar"
+  },
+  {
+    "name": "Spotify",
+    "betrag": 5.5,
+    "datum": "2026-03-02",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Transport",
+    "betrag": 32.19,
+    "datum": "2026-02-28",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Februar"
+  },
+  {
+    "name": "Mittag auf den Almen",
+    "betrag": 95.0,
+    "datum": "2026-02-28",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Februar"
+  },
+  {
+    "name": "Essen Sonntag",
+    "betrag": 33.7,
+    "datum": "2026-03-03",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Februar"
+  },
+  {
+    "name": "Sonnenbrille",
+    "betrag": 56.9,
+    "datum": "2026-03-03",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Friseur",
+    "betrag": 23.0,
+    "datum": "2026-03-06",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Wien-Stuttgart storniert",
+    "betrag": 10.0,
+    "datum": "2026-04-30",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise",
+      "transport"
+    ],
+    "typTag": "reise",
+    "transportTag": "fernverkehr",
+    "reiseTag": "Deutschland - Stuttgart"
+  },
+  {
+    "name": "Schladming Unterkunft",
+    "betrag": 206.0,
+    "datum": "2026-02-26",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Februar"
+  },
+  {
+    "name": "Sonstige Ausgaben",
+    "betrag": 174.0,
+    "datum": "2026-02-28",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Schladming - Februar"
+  },
+  {
+    "name": "Icloud",
+    "betrag": 9.99,
+    "datum": "2026-03-05",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Snuuse",
+    "betrag": 18.0,
+    "datum": "2026-03-08",
+    "kategorie": "zigaretten",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Demel",
+    "betrag": 7.9,
+    "datum": "2026-03-08",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Nordsee",
+    "betrag": 10.5,
+    "datum": "2026-03-08",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 9.7,
+    "datum": "2026-03-08",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Seidl rallye",
+    "betrag": 36.5,
+    "datum": "2026-03-07",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Seidl Rallye",
+    "betrag": 36.5,
+    "datum": "2026-03-07",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Bier Tim",
+    "betrag": 13.0,
+    "datum": "2026-03-10",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Asiate mit Tim",
+    "betrag": 13.0,
+    "datum": "2026-03-10",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Mama & Papa Geschenk",
+    "betrag": 75.0,
+    "datum": "2026-03-14",
+    "kategorie": "geschenke",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Rebekka Geschenk",
+    "betrag": 20.9,
+    "datum": "2026-03-16",
+    "kategorie": "geschenke",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Döner & Holländer",
+    "betrag": 26.9,
+    "datum": "2026-03-16",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Gürtel",
+    "betrag": 10.0,
+    "datum": "2026-03-14",
+    "kategorie": "kleidung",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Rossmann",
+    "betrag": 27.3,
+    "datum": "2026-03-14",
+    "kategorie": "haushalt",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Drinks Samstag",
+    "betrag": 22.0,
+    "datum": "2026-03-21",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Billa",
+    "betrag": 10.5,
+    "datum": "2026-03-21",
+    "kategorie": "lebensmittel",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Haushaltsmittel",
+    "betrag": 30.0,
+    "datum": "2026-03-21",
+    "kategorie": "haushalt",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Miete",
+    "betrag": 673.0,
+    "datum": "2026-03-21",
+    "kategorie": "miete",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "BU",
+    "betrag": 54.5,
+    "datum": "2026-03-21",
+    "kategorie": "versicherung",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "ICloud",
+    "betrag": 9.99,
+    "datum": "2026-03-21",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 3.0,
+    "datum": "2026-03-21",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Essen Samstag",
+    "betrag": 30.0,
+    "datum": "2026-03-21",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Snuuse",
+    "betrag": 25.2,
+    "datum": "2026-03-24",
+    "kategorie": "zigaretten",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Handy",
+    "betrag": 5.99,
+    "datum": "2026-03-26",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Kickbase",
+    "betrag": 4.99,
+    "datum": "2026-03-26",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Burger + Sushi",
+    "betrag": 42.0,
+    "datum": "2026-03-29",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Drinks Sushis & Burger",
+    "betrag": 14.0,
+    "datum": "2026-03-29",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Bier Nauwies",
+    "betrag": 24.0,
+    "datum": "2026-03-27",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Geschenke Maartje und Leevke",
+    "betrag": 94.0,
+    "datum": "2026-03-29",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Spotify",
+    "betrag": 5.5,
+    "datum": "2026-04-01",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Airbnb Essen",
+    "betrag": 41.5,
+    "datum": "2026-04-18",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Essen"
+  },
+  {
+    "name": "Geschenk Tim",
+    "betrag": 15.0,
+    "datum": "2026-04-02",
+    "kategorie": "geschenke",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Caldern-Wetzlar",
+    "betrag": 11.5,
+    "datum": "2026-04-06",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [
+      "reise",
+      "transport"
+    ],
+    "typTag": "reise",
+    "transportTag": "fernverkehr",
+    "reiseTag": "Deutschland - Kernbach"
+  },
+  {
+    "name": "WL",
+    "betrag": 3.0,
+    "datum": "2026-04-07",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Hofer",
+    "betrag": 35.02,
+    "datum": "2026-04-07",
+    "kategorie": "lebensmittel",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Geburtstag",
+    "betrag": 73.86,
+    "datum": "2026-04-08",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Friseur",
+    "betrag": 22.0,
+    "datum": "2026-04-10",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Geburtstag - Bier",
+    "betrag": 11.76,
+    "datum": "2026-04-10",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Kleines Cafè",
+    "betrag": 11.0,
+    "datum": "2026-04-11",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Geburtstag - Bier",
+    "betrag": 22.56,
+    "datum": "2026-04-11",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Dürum und Pommes",
+    "betrag": 10.3,
+    "datum": "2026-04-12",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Schuhe",
+    "betrag": 110.0,
+    "datum": "2026-04-13",
+    "kategorie": "kleidung",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Snuuse",
+    "betrag": 26.5,
+    "datum": "2026-04-11",
+    "kategorie": "zigaretten",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 3.0,
+    "datum": "2026-04-11",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Geburtstag - Penny - Bier & Snacks",
+    "betrag": 54.94,
+    "datum": "2026-04-10",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Geburtstag - Interspar",
+    "betrag": 42.46,
+    "datum": "2026-04-10",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Austernpilze",
+    "betrag": 11.97,
+    "datum": "2026-04-10",
+    "kategorie": "lebensmittel",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "NRW Ticket",
+    "betrag": 40.0,
+    "datum": "2026-04-18",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [
+      "reise",
+      "transport"
+    ],
+    "typTag": "reise",
+    "transportTag": "fernverkehr",
+    "reiseTag": "Deutschland - Essen"
+  },
+  {
+    "name": "Bier, Kaffee, Börek, Zig",
+    "betrag": 17.8,
+    "datum": "2026-04-18",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Essen"
+  },
+  {
+    "name": "Brauhaus",
+    "betrag": 39.0,
+    "datum": "2026-04-17",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Essen"
+  },
+  {
+    "name": "Handy",
+    "betrag": 5.5,
+    "datum": "2026-04-30",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "BU",
+    "betrag": 54.5,
+    "datum": "2026-04-20",
+    "kategorie": "versicherung",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Alk + Essen Marl",
+    "betrag": 32.0,
+    "datum": "2026-04-18",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Essen"
+  },
+  {
+    "name": "Cafè in Essen",
+    "betrag": 10.5,
+    "datum": "2026-04-19",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Essen"
+  },
+  {
+    "name": "Musical",
+    "betrag": 111.55,
+    "datum": "2026-04-22",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise"
+    ],
+    "typTag": "reise",
+    "transportTag": "",
+    "reiseTag": "Deutschland - Hamburg"
+  },
+  {
+    "name": "ICloud",
+    "betrag": 9.99,
+    "datum": "2026-04-23",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Zig",
+    "betrag": 13.0,
+    "datum": "2026-04-25",
+    "kategorie": "zigaretten",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Bier bierteufel",
+    "betrag": 10.0,
+    "datum": "2026-04-25",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Backhendl Salat",
+    "betrag": 19.0,
+    "datum": "2026-04-24",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Döner",
+    "betrag": 6.9,
+    "datum": "2026-04-25",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Snuuse",
+    "betrag": 39.5,
+    "datum": "2026-04-26",
+    "kategorie": "zigaretten",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Padel",
+    "betrag": 20.0,
+    "datum": "2026-04-26",
+    "kategorie": "sport",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 3.0,
+    "datum": "2026-04-26",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Öfferl Kaffee",
+    "betrag": 4.5,
+    "datum": "2026-04-26",
+    "kategorie": "drinks",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Öffer + Toogoodtogo",
+    "betrag": 10.0,
+    "datum": "2026-04-26",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "WL",
+    "betrag": 3.0,
+    "datum": "2026-04-25",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Miete",
+    "betrag": 674.0,
+    "datum": "2026-04-26",
+    "kategorie": "miete",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Weinfrühling",
+    "betrag": 30.0,
+    "datum": "2026-04-25",
+    "kategorie": "sonstiges",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Kickbase",
+    "betrag": 4.99,
+    "datum": "2026-04-23",
+    "kategorie": "abos",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Stuttgart - Bissingrn",
+    "betrag": 5.5,
+    "datum": "2026-04-30",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Stelze weinfrühling",
+    "betrag": 14.5,
+    "datum": "2026-04-25",
+    "kategorie": "restaurant",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "Taxi Weinfrühlinf",
+    "betrag": 3.0,
+    "datum": "2026-04-25",
+    "kategorie": "nahverkehr",
+    "notiz": "",
+    "typTags": [],
+    "typTag": "",
+    "transportTag": "",
+    "reiseTag": ""
+  },
+  {
+    "name": "AMS-Stuttgart",
+    "betrag": 103.45,
+    "datum": "2026-04-30",
+    "kategorie": "reisen",
+    "notiz": "",
+    "typTags": [
+      "reise",
+      "transport"
+    ],
+    "typTag": "reise",
+    "transportTag": "fernverkehr",
+    "reiseTag": "Deutschland - Stuttgart"
+  }
+];
+
+window.doLogin = async function() {
+  var email = document.getElementById("email").value.trim();
+  var pw = document.getElementById("password").value;
+  var log = document.getElementById("loginLog");
+  log.textContent = "Melde an...";
+  try {
+    await signInWithEmailAndPassword(auth, email, pw);
+    document.getElementById("loginCard").style.display = "none";
+    document.getElementById("importCard").style.display = "block";
+  } catch(e) {
+    log.textContent = "Login fehlgeschlagen: " + e.message;
+  }
+};
+
+window.startImport = async function() {
+  var btn = document.getElementById("importBtn");
+  var log = document.getElementById("importLog");
+  btn.disabled = true;
+  var done = 0;
+  for (var i = 0; i < ENTRIES.length; i++) {
+    var e = ENTRIES[i];
+    var data = {
+      name: e.name,
+      betrag: e.betrag,
+      datum: e.datum,
+      kategorie: e.kategorie,
+      notiz: e.notiz || "",
+      typTags: e.typTags || [],
+      typTag: e.typTag || "",
+      transportTag: e.transportTag || "",
+      reiseTag: e.reiseTag || "",
+      erfasst_am: new Date().toISOString()
+    };
+    try {
+      await addDoc(expensesCol, data);
+      done++;
+      log.textContent = "Importiere... " + done + " / " + ENTRIES.length;
+    } catch(err) {
+      log.textContent = "Fehler bei Eintrag " + (i+1) + ": " + err.message;
+      btn.disabled = false;
+      return;
+    }
+  }
+  log.innerHTML = "<span class='ok'>Fertig! " + done + " Eintraege hinzugefuegt. Du kannst diese Seite jetzt schliessen und die App oeffnen.</span>";
+};
+</script>
+</body>
+</html>
