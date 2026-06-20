@@ -243,6 +243,13 @@
   .abo-sheet-name{font-size:14px;font-weight:500;color:var(--text)}
   .abo-sheet-amount{font-size:12px;color:var(--hint)}
   .abo-type-select{height:34px;border:1px solid var(--border2);border-radius:var(--radius-s);background:var(--bg);color:var(--text);font-size:13px;padding:0 8px;outline:none;font-family:inherit;-webkit-appearance:none}
+  .abo-edit-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-s);padding:10px;margin-bottom:8px}
+  .abo-edit-name{width:100%;height:38px;border:1px solid var(--border2);border-radius:var(--radius-s);background:var(--surface);color:var(--text);font-size:14px;font-weight:600;padding:0 10px;outline:none;font-family:inherit;box-sizing:border-box}
+  .abo-edit-name:focus{border-color:var(--accent)}
+  .abo-edit-hint{font-size:10px;color:var(--accent);margin-top:4px;font-weight:500}
+  .abo-edit-row{display:flex;gap:8px;margin-top:8px}
+  .abo-edit-type,.abo-edit-merge{flex:1;min-width:0;height:34px;border:1px solid var(--border2);border-radius:var(--radius-s);background:var(--surface);color:var(--text);font-size:12px;padding:0 8px;outline:none;font-family:inherit;-webkit-appearance:none}
+  .abo-edit-type:focus,.abo-edit-merge:focus{border-color:var(--accent)}
   .reisen-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}
   .reise-kachel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer}
   .reise-kachel:active{border-color:var(--border2)}
@@ -448,7 +455,7 @@
     <button class="sheet-close" onclick="closeSheets()">x</button>
   </div>
   <div class="form-body">
-    <p style="font-size:13px;color:var(--muted);margin-top:-8px">Weise jedem Abo einen Typ zu. Wird fuer die Dashboard-Uebersicht verwendet.</p>
+    <p style="font-size:13px;color:var(--muted);margin-top:-8px">Abos umbenennen, Typ zuweisen oder zusammenfuehren. Die einzelnen Ausgaben bleiben unveraendert.</p>
     <div id="aboSheetList"></div>
     <button class="btn-submit" onclick="saveAboTypes()" style="margin-top:8px">Speichern</button>
   </div>
@@ -520,6 +527,7 @@ const expensesCol = collection(db, "expenses");
 var unsubscribeSnapshot = null;
 var budgets = {};
 var aboTypes = {};
+var aboConfig = {};
 var YEAR_BUDGET_CATS = ["reisen", "kleidung", "sonstiges"];
 var CAT_COLORS = {
   lebensmittel: "#5B8C7B", restaurant: "#C28A7A", drinks: "#D4A373", reisen: "#6B8CAE",
@@ -622,6 +630,10 @@ async function loadSettingsFromFirebase() {
         aboTypes = data.aboTypes;
         localStorage.setItem("haushaltsapp_abotypes", JSON.stringify(aboTypes));
       }
+      if (data.aboConfig) {
+        aboConfig = data.aboConfig;
+        localStorage.setItem("haushaltsapp_aboconfig", JSON.stringify(aboConfig));
+      }
     }
     settingsLoaded = true;
     renderAll();
@@ -636,6 +648,7 @@ async function saveSettingsToFirebase() {
     await setDoc(doc(db, "settings", "main"), {
       budgets: budgets,
       aboTypes: aboTypes,
+      aboConfig: aboConfig,
       updated_at: new Date().toISOString()
     });
   } catch(e) {}
@@ -1878,57 +1891,103 @@ function getAboType(expenseId, name) {
   return autoDetectAboType(name);
 }
 
+function loadAboConfig() {
+  try {
+    var stored = localStorage.getItem("haushaltsapp_aboconfig");
+    aboConfig = stored ? JSON.parse(stored) : {};
+  } catch(e) { aboConfig = {}; }
+}
+
+function saveAboConfigToStorage() {
+  localStorage.setItem("haushaltsapp_aboconfig", JSON.stringify(aboConfig));
+  saveSettingsToFirebase();
+}
+
+function aboKey(name) {
+  return (name || "").trim().toLowerCase();
+}
+
+// Folgt der mergeInto-Kette bis zum finalen Schluessel (mit Schleifen-Schutz)
+function resolveAboKey(key) {
+  var seen = {};
+  var k = key;
+  while (aboConfig[k] && aboConfig[k].mergeInto && !seen[k]) {
+    seen[k] = true;
+    k = aboConfig[k].mergeInto;
+  }
+  return k;
+}
+
+// Baut die gruppierten Abos: { finalKey: {name, type, betrag, ids, variants} }
+function buildAboGroups() {
+  var allAbo = expenses.filter(function(e) { return e.kategorie === "abos"; });
+  // juengste zuerst pro Name fuer Anzeige
+  var sortedAsc = allAbo.slice().sort(function(a, b) { return new Date(a.datum) - new Date(b.datum); });
+  var groups = {};
+  sortedAsc.forEach(function(e) {
+    var raw = aboKey(e.name);
+    var fk = resolveAboKey(raw);
+    if (!groups[fk]) groups[fk] = { betrag: 0, lastName: e.name, ids: [], variants: {} };
+    groups[fk].betrag = e.betrag; // juengster Betrag (ascending -> letzter gewinnt)
+    groups[fk].lastName = e.name;
+    groups[fk].ids.push(e.id);
+    groups[fk].variants[e.name] = true;
+  });
+  // Anzeigename + Typ aus aboConfig oder Default
+  Object.keys(groups).forEach(function(fk) {
+    var cfg = aboConfig[fk] || {};
+    groups[fk].name = cfg.name || groups[fk].lastName;
+    groups[fk].type = cfg.type || autoDetectAboType(groups[fk].lastName);
+  });
+  return groups;
+}
+
 loadAboTypes();
+loadAboConfig();
 
 function renderAbos() {
-  var allAboExpenses = expenses.filter(function(e) { return e.kategorie === "abos"; });
   var grid = document.getElementById("abosGrid");
   var totalEl = document.getElementById("aboTotal");
+  var groups = buildAboGroups();
+  var keys = Object.keys(groups);
 
-  if (!allAboExpenses.length) {
+  if (!keys.length) {
     grid.innerHTML = "<div style='color:var(--hint);font-size:13px;grid-column:span 2'>Noch keine Abos erfasst</div>";
     totalEl.textContent = "";
     return;
   }
 
-  // Jedes Abo nach Name, mit juengstem Eintrag (typischer Betrag + Typ)
-  var byName = {};
-  allAboExpenses.slice().sort(function(a, b) { return new Date(a.datum) - new Date(b.datum); }).forEach(function(e) {
-    byName[e.name] = e;
-  });
-
-  // Was wurde diesen Monat schon gebucht?
+  // Diesen Monat gebuchte Abos (nach Gruppe)
   var paidThisMonth = {};
   monthData(viewYear, viewMonth).filter(function(e) { return e.kategorie === "abos"; }).forEach(function(e) {
-    paidThisMonth[e.name] = (paidThisMonth[e.name] || 0) + e.betrag;
+    var fk = resolveAboKey(aboKey(e.name));
+    paidThisMonth[fk] = (paidThisMonth[fk] || 0) + e.betrag;
   });
 
-  var names = Object.keys(byName);
-  // Sortierung: offene zuerst (damit man sie sieht), dann nach Betrag
-  names.sort(function(a, b) {
+  // Sortierung: offene zuerst, dann nach Betrag
+  keys.sort(function(a, b) {
     var aPaid = paidThisMonth[a] !== undefined ? 1 : 0;
     var bPaid = paidThisMonth[b] !== undefined ? 1 : 0;
     if (aPaid !== bPaid) return aPaid - bPaid;
-    return byName[b].betrag - byName[a].betrag;
+    return groups[b].betrag - groups[a].betrag;
   });
 
-  var totalKnown = names.reduce(function(s, n) { return s + byName[n].betrag; }, 0);
-  var paidCount = names.filter(function(n) { return paidThisMonth[n] !== undefined; }).length;
-  totalEl.textContent = formatEur(totalKnown) + " / Monat (" + paidCount + "/" + names.length + ")";
+  var totalKnown = keys.reduce(function(s, k) { return s + groups[k].betrag; }, 0);
+  var paidCount = keys.filter(function(k) { return paidThisMonth[k] !== undefined; }).length;
+  totalEl.textContent = formatEur(totalKnown) + " / Monat (" + paidCount + "/" + keys.length + ")";
 
-  grid.innerHTML = names.map(function(n) {
-    var e = byName[n];
-    var type = getAboType(e.id, e.name);
-    var typeInfo = ABO_TYPES.find(function(t) { return t.id === type; }) || {icon: ICON_BOX, label: "Sonstiges"};
-    var isPaid = paidThisMonth[n] !== undefined;
-    var amount = isPaid ? paidThisMonth[n] : e.betrag;
+  grid.innerHTML = keys.map(function(k) {
+    var g = groups[k];
+    var typeInfo = ABO_TYPES.find(function(t) { return t.id === g.type; }) || {icon: ICON_BOX, label: "Sonstiges"};
+    var isPaid = paidThisMonth[k] !== undefined;
+    var amount = isPaid ? paidThisMonth[k] : g.betrag;
     var statusHtml = isPaid
-      ? "<span class='abo-status paid'></span>"
+      ? "<span class='abo-status'></span>"
       : "<span class='abo-status-open'>offen</span>";
     return "<div class='abo-kachel" + (isPaid ? "" : " abo-open") + "'>" +
       "<div class='abo-kachel-top'>" +
         "<span class='abo-kachel-icon'>" + typeInfo.icon + "</span>" +
-        "<span class='abo-kachel-type'>" + escHtml(n) + "</span>" +
+        "<span class='abo-kachel-type'>" + escHtml(g.name) + "</span>" +
         statusHtml +
       "</div>" +
       "<div class='abo-kachel-amount'>" + formatEur(amount) + "</div>" +
@@ -1937,40 +1996,50 @@ function renderAbos() {
 }
 
 window.openAboSheet = function() {
-  var aboExpenses = expenses.filter(function(e) { return e.kategorie === "abos"; });
-  var unique = {};
-  aboExpenses.forEach(function(e) {
-    if (!unique[e.name]) unique[e.name] = e;
-  });
+  var groups = buildAboGroups();
+  var keys = Object.keys(groups).sort(function(a, b) { return groups[b].betrag - groups[a].betrag; });
 
-  document.getElementById("aboSheetList").innerHTML = Object.values(unique).map(function(e) {
-    var currentType = getAboType(e.id, e.name);
-    return "<div class='abo-sheet-row'>" +
-      "<div class='abo-sheet-icon'>" + (ABO_TYPES.find(function(t) { return t.id === currentType; }) || {icon:"📦"}).icon + "</div>" +
-      "<div class='abo-sheet-info'>" +
-        "<div class='abo-sheet-name'>" + escHtml(e.name) + "</div>" +
-        "<div class='abo-sheet-amount'>" + formatEur(e.betrag) + " / Monat</div>" +
+  document.getElementById("aboSheetList").innerHTML = keys.map(function(k) {
+    var g = groups[k];
+    // Merge-Optionen: alle anderen Abos
+    var mergeOptions = "<option value=''>-- eigenstaendig --</option>";
+    keys.forEach(function(ok) {
+      if (ok === k) return;
+      mergeOptions += "<option value='" + escAttr(ok) + "'>" + escHtml(groups[ok].name) + "</option>";
+    });
+    var typeOptions = ABO_TYPES.map(function(t) {
+      return "<option value='" + t.id + "'" + (g.type === t.id ? " selected" : "") + ">" + t.icon + " " + t.label + "</option>";
+    }).join("");
+    var variantCount = Object.keys(g.variants).length;
+    var variantHint = variantCount > 1 ? "<div class='abo-edit-hint'>" + variantCount + " Schreibweisen zusammengefasst</div>" : "";
+    return "<div class='abo-edit-card' data-key='" + escAttr(k) + "'>" +
+      "<input class='abo-edit-name' type='text' value='" + escAttr(g.name) + "' placeholder='Name'>" +
+      variantHint +
+      "<div class='abo-edit-row'>" +
+        "<select class='abo-edit-type'>" + typeOptions + "</select>" +
+        "<select class='abo-edit-merge'>" + mergeOptions + "</select>" +
       "</div>" +
-      "<select class='abo-type-select' data-id='" + e.id + "' data-name='" + escHtml(e.name) + "'>" +
-        ABO_TYPES.map(function(t) {
-          return "<option value='" + t.id + "'" + (currentType === t.id ? " selected" : "") + ">" + t.icon + " " + t.label + "</option>";
-        }).join("") +
-      "</select>" +
     "</div>";
   }).join("");
   openSheet("aboSheet");
 };
 
 window.saveAboTypes = function() {
-  var selects = document.querySelectorAll(".abo-type-select");
-  selects.forEach(function(sel) {
-    aboTypes[sel.dataset.id] = sel.value;
-    aboTypes["name_" + sel.dataset.name] = sel.value;
+  var cards = document.querySelectorAll(".abo-edit-card");
+  cards.forEach(function(card) {
+    var k = card.dataset.key;
+    var name = card.querySelector(".abo-edit-name").value.trim();
+    var type = card.querySelector(".abo-edit-type").value;
+    var mergeInto = card.querySelector(".abo-edit-merge").value;
+    if (!aboConfig[k]) aboConfig[k] = {};
+    aboConfig[k].name = name;
+    aboConfig[k].type = type;
+    aboConfig[k].mergeInto = mergeInto || "";
   });
-  saveAboTypesToStorage();
+  saveAboConfigToStorage();
   closeSheets();
   renderAbos();
-  showToast("Abo-Typen gespeichert");
+  showToast("Abos gespeichert");
 };
 
 var backupReminderChecked = false;
