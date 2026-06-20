@@ -232,6 +232,8 @@
   .abo-kachel.abo-open{border-style:dashed;border-color:var(--border2);opacity:0.7}
   .abo-status{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-left:auto;flex-shrink:0}
   .abo-status-open{margin-left:auto;font-size:9px;font-weight:600;color:var(--hint);background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:1px 6px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.3px}
+  .abo-status-year{margin-left:auto;font-size:9px;font-weight:600;color:#6B8CAE;background:var(--bg);border:1px solid #6B8CAE;border-radius:8px;padding:1px 6px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.3px}
+  .abo-kachel-sub{font-size:9px;color:var(--hint);margin-top:1px}
   .abo-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .abo-total{font-size:12px;color:var(--muted)}
   .abo-edit-btn{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
@@ -248,8 +250,8 @@
   .abo-edit-name:focus{border-color:var(--accent)}
   .abo-edit-hint{font-size:10px;color:var(--accent);margin-top:4px;font-weight:500}
   .abo-edit-row{display:flex;gap:8px;margin-top:8px}
-  .abo-edit-type,.abo-edit-merge{flex:1;min-width:0;height:34px;border:1px solid var(--border2);border-radius:var(--radius-s);background:var(--surface);color:var(--text);font-size:12px;padding:0 8px;outline:none;font-family:inherit;-webkit-appearance:none}
-  .abo-edit-type:focus,.abo-edit-merge:focus{border-color:var(--accent)}
+  .abo-edit-type,.abo-edit-merge,.abo-edit-cycle{flex:1;min-width:0;height:34px;border:1px solid var(--border2);border-radius:var(--radius-s);background:var(--surface);color:var(--text);font-size:12px;padding:0 8px;outline:none;font-family:inherit;-webkit-appearance:none}
+  .abo-edit-type:focus,.abo-edit-merge:focus,.abo-edit-cycle:focus{border-color:var(--accent)}
   .reisen-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}
   .reise-kachel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer}
   .reise-kachel:active{border-color:var(--border2)}
@@ -1933,11 +1935,13 @@ function buildAboGroups() {
     groups[fk].ids.push(e.id);
     groups[fk].variants[e.name] = true;
   });
-  // Anzeigename + Typ aus aboConfig oder Default
+  // Anzeigename + Typ + Abrechnung aus aboConfig oder Default
   Object.keys(groups).forEach(function(fk) {
     var cfg = aboConfig[fk] || {};
     groups[fk].name = cfg.name || groups[fk].lastName;
     groups[fk].type = cfg.type || autoDetectAboType(groups[fk].lastName);
+    groups[fk].cycle = cfg.cycle || "monat";
+    groups[fk].monthly = groups[fk].cycle === "jahr" ? groups[fk].betrag / 12 : groups[fk].betrag;
   });
   return groups;
 }
@@ -1964,33 +1968,50 @@ function renderAbos() {
     paidThisMonth[fk] = (paidThisMonth[fk] || 0) + e.betrag;
   });
 
-  // Sortierung: offene zuerst, dann nach Betrag
+  // Ist das Abo diesen Monat aktiv? Jahres-Abos zaehlen immer (monatlich umgelegt)
+  function aboActive(k) {
+    if (groups[k].cycle === "jahr") return true;
+    return paidThisMonth[k] !== undefined;
+  }
+
+  // Sortierung: offene zuerst, dann nach Monatsbetrag
   keys.sort(function(a, b) {
-    var aPaid = paidThisMonth[a] !== undefined ? 1 : 0;
-    var bPaid = paidThisMonth[b] !== undefined ? 1 : 0;
-    if (aPaid !== bPaid) return aPaid - bPaid;
-    return groups[b].betrag - groups[a].betrag;
+    var aA = aboActive(a) ? 1 : 0;
+    var bA = aboActive(b) ? 1 : 0;
+    if (aA !== bA) return aA - bA;
+    return groups[b].monthly - groups[a].monthly;
   });
 
-  var totalKnown = keys.reduce(function(s, k) { return s + groups[k].betrag; }, 0);
-  var paidCount = keys.filter(function(k) { return paidThisMonth[k] !== undefined; }).length;
-  totalEl.textContent = formatEur(totalKnown) + " / Monat (" + paidCount + "/" + keys.length + ")";
+  var totalMonthly = keys.reduce(function(s, k) { return s + groups[k].monthly; }, 0);
+  var activeCount = keys.filter(function(k) { return aboActive(k); }).length;
+  totalEl.textContent = formatEur(totalMonthly) + " / Monat (" + activeCount + "/" + keys.length + ")";
 
   grid.innerHTML = keys.map(function(k) {
     var g = groups[k];
     var typeInfo = ABO_TYPES.find(function(t) { return t.id === g.type; }) || {icon: ICON_BOX, label: "Sonstiges"};
+    var isYear = g.cycle === "jahr";
     var isPaid = paidThisMonth[k] !== undefined;
-    var amount = isPaid ? paidThisMonth[k] : g.betrag;
-    var statusHtml = isPaid
-      ? "<span class='abo-status'></span>"
-      : "<span class='abo-status-open'>offen</span>";
-    return "<div class='abo-kachel" + (isPaid ? "" : " abo-open") + "'>" +
+    var statusHtml;
+    var openClass = "";
+    if (isYear) {
+      statusHtml = "<span class='abo-status-year'>Jahr</span>";
+    } else if (isPaid) {
+      statusHtml = "<span class='abo-status'></span>";
+    } else {
+      statusHtml = "<span class='abo-status-open'>offen</span>";
+      openClass = " abo-open";
+    }
+    var amountHtml = "<div class='abo-kachel-amount'>" + formatEur(g.monthly) + "</div>";
+    if (isYear) {
+      amountHtml += "<div class='abo-kachel-sub'>" + formatEur(g.betrag) + " / Jahr</div>";
+    }
+    return "<div class='abo-kachel" + openClass + "'>" +
       "<div class='abo-kachel-top'>" +
         "<span class='abo-kachel-icon'>" + typeInfo.icon + "</span>" +
         "<span class='abo-kachel-type'>" + escHtml(g.name) + "</span>" +
         statusHtml +
       "</div>" +
-      "<div class='abo-kachel-amount'>" + formatEur(amount) + "</div>" +
+      amountHtml +
     "</div>";
   }).join("");
 }
@@ -2010,6 +2031,8 @@ window.openAboSheet = function() {
     var typeOptions = ABO_TYPES.map(function(t) {
       return "<option value='" + t.id + "'" + (g.type === t.id ? " selected" : "") + ">" + t.icon + " " + t.label + "</option>";
     }).join("");
+    var cycleOptions = "<option value='monat'" + (g.cycle !== "jahr" ? " selected" : "") + ">Monatlich</option>" +
+      "<option value='jahr'" + (g.cycle === "jahr" ? " selected" : "") + ">Jaehrlich</option>";
     var variantCount = Object.keys(g.variants).length;
     var variantHint = variantCount > 1 ? "<div class='abo-edit-hint'>" + variantCount + " Schreibweisen zusammengefasst</div>" : "";
     return "<div class='abo-edit-card' data-key='" + escAttr(k) + "'>" +
@@ -2017,6 +2040,9 @@ window.openAboSheet = function() {
       variantHint +
       "<div class='abo-edit-row'>" +
         "<select class='abo-edit-type'>" + typeOptions + "</select>" +
+        "<select class='abo-edit-cycle'>" + cycleOptions + "</select>" +
+      "</div>" +
+      "<div class='abo-edit-row'>" +
         "<select class='abo-edit-merge'>" + mergeOptions + "</select>" +
       "</div>" +
     "</div>";
@@ -2031,9 +2057,11 @@ window.saveAboTypes = function() {
     var name = card.querySelector(".abo-edit-name").value.trim();
     var type = card.querySelector(".abo-edit-type").value;
     var mergeInto = card.querySelector(".abo-edit-merge").value;
+    var cycle = card.querySelector(".abo-edit-cycle").value;
     if (!aboConfig[k]) aboConfig[k] = {};
     aboConfig[k].name = name;
     aboConfig[k].type = type;
+    aboConfig[k].cycle = cycle;
     aboConfig[k].mergeInto = mergeInto || "";
   });
   saveAboConfigToStorage();
