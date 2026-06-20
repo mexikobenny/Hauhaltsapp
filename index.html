@@ -526,6 +526,35 @@ var CAT_COLORS = {
 };
 var ICON_LUGGAGE = String.fromCodePoint(0x1F9F3);
 var ICON_MAILBOX = String.fromCodePoint(0x1F4ED);
+var FLAG_GR = String.fromCodePoint(0x1F1EC, 0x1F1F7);
+var FLAG_NL = String.fromCodePoint(0x1F1F3, 0x1F1F1);
+var FLAG_DE = String.fromCodePoint(0x1F1E9, 0x1F1EA);
+var FLAG_AT = String.fromCodePoint(0x1F1E6, 0x1F1F9);
+var FLAG_ES = String.fromCodePoint(0x1F1EA, 0x1F1F8);
+var FLAG_IT = String.fromCodePoint(0x1F1EE, 0x1F1F9);
+var FLAG_FR = String.fromCodePoint(0x1F1EB, 0x1F1F7);
+var ICON_SKI = String.fromCodePoint(0x1F3BF);
+var ICON_BEACH = String.fromCodePoint(0x1F3D6, 0xFE0F);
+var ICON_CITY = String.fromCodePoint(0x1F3D9, 0xFE0F);
+var ICON_MOUNTAIN = String.fromCodePoint(0x1F3D4, 0xFE0F);
+
+function reiseIcon(name) {
+  var n = (name || "").toLowerCase();
+  // Land genannt -> Flagge
+  if (n.indexOf("griechen") !== -1) return FLAG_GR;
+  if (n.indexOf("niederlande") !== -1 || n.indexOf("holland") !== -1) return FLAG_NL;
+  if (n.indexOf("deutschland") !== -1) return FLAG_DE;
+  if (n.indexOf("sterreich") !== -1) return FLAG_AT;
+  if (n.indexOf("spanien") !== -1 || n.indexOf("bcn") !== -1 || n.indexOf("barcelona") !== -1) return FLAG_ES;
+  if (n.indexOf("italien") !== -1) return FLAG_IT;
+  if (n.indexOf("frankreich") !== -1) return FLAG_FR;
+  // sonst kontextbezogen
+  if (n.indexOf("schladming") !== -1 || n.indexOf("ski") !== -1 || n.indexOf("silvester") !== -1 || n.indexOf("winter") !== -1) return ICON_SKI;
+  if (n.indexOf("borkum") !== -1 || n.indexOf("naxos") !== -1 || n.indexOf("strand") !== -1 || n.indexOf("insel") !== -1 || n.indexOf("meer") !== -1) return ICON_BEACH;
+  if (n.indexOf("berg") !== -1 || n.indexOf("alm") !== -1 || n.indexOf("alpen") !== -1) return ICON_MOUNTAIN;
+  if (n.indexOf("stuttgart") !== -1 || n.indexOf("hamburg") !== -1 || n.indexOf("essen") !== -1 || n.indexOf("mainz") !== -1 || n.indexOf("amsterdam") !== -1 || n.indexOf("stadt") !== -1) return ICON_CITY;
+  return ICON_LUGGAGE;
+}
 
 window.doLogin = async function() {
   var email = document.getElementById("loginEmail").value.trim();
@@ -1254,9 +1283,11 @@ function renderReisenKacheln() {
   }
   el.innerHTML = "<div class='reisen-grid'>" + keys.map(function(key) {
     return "<div class='reise-kachel reise-clickable' data-reise='" + escHtml(key) + "'>" +
-      "<div class='reise-kachel-icon'>" + ICON_LUGGAGE + "</div>" +
-      "<div class='reise-kachel-name'>" + escHtml(key) + "</div>" +
-      "<div class='reise-kachel-amount'>" + formatEur(allReisen[key]) + "</div>" +
+      "<div class='reise-kachel-body'>" +
+        "<div class='reise-kachel-icon'>" + reiseIcon(key) + "</div>" +
+        "<div class='reise-kachel-name'>" + escHtml(key) + "</div>" +
+        "<div class='reise-kachel-amount'>" + formatEur(allReisen[key]) + "</div>" +
+      "</div>" +
       "</div>";
   }).join("") + "</div>";
 }
