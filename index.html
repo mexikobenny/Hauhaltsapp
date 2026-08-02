@@ -249,6 +249,13 @@
   .abo-edit-name{width:100%;height:38px;border:1px solid var(--border2);border-radius:var(--radius-s);background:var(--surface);color:var(--text);font-size:14px;font-weight:600;padding:0 10px;outline:none;font-family:inherit;box-sizing:border-box}
   .abo-edit-name:focus{border-color:var(--accent)}
   .abo-edit-hint{font-size:10px;color:var(--accent);margin-top:4px;font-weight:500}
+  .abo-edit-autorow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .abo-auto-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer}
+  .abo-auto-toggle input{width:16px;height:16px;accent-color:var(--accent)}
+  .abo-auto-day{font-size:12px;color:var(--muted)}
+  .abo-edit-day{width:46px;height:30px;border:1px solid var(--border2);border-radius:var(--radius-s);background:var(--surface);color:var(--text);font-size:13px;text-align:center;font-family:inherit;outline:none}
+  .abo-edit-day:focus{border-color:var(--accent)}
+  .abo-edit-autonote{font-size:11px;color:var(--hint);margin-top:8px;font-style:italic}
   .abo-edit-row{display:flex;gap:8px;margin-top:8px}
   .abo-edit-type,.abo-edit-merge,.abo-edit-cycle{flex:1;min-width:0;height:34px;border:1px solid var(--border2);border-radius:var(--radius-s);background:var(--surface);color:var(--text);font-size:12px;padding:0 8px;outline:none;font-family:inherit;-webkit-appearance:none}
   .abo-edit-type:focus,.abo-edit-merge:focus,.abo-edit-cycle:focus{border-color:var(--accent)}
@@ -604,9 +611,11 @@ onAuthStateChanged(auth, function(user) {
     if (!unsubscribeSnapshot) {
       unsubscribeSnapshot = onSnapshot(q, function(snap) {
         expenses = snap.docs.map(function(d) { return Object.assign({id:d.id}, d.data()); });
+        expensesLoaded = true;
         setSyncStatus("synced", "Synchronisiert");
         renderAll();
         checkBackupReminder();
+        maybeRunAutoBooking();
       }, function() { setSyncStatus("error", "Verbindungsfehler"); });
       loadSettingsFromFirebase();
     }
@@ -639,6 +648,7 @@ async function loadSettingsFromFirebase() {
     }
     settingsLoaded = true;
     renderAll();
+    maybeRunAutoBooking();
   } catch(e) {
     settingsLoaded = true;
   }
@@ -1949,6 +1959,73 @@ function buildAboGroups() {
 loadAboTypes();
 loadAboConfig();
 
+var expensesLoaded = false;
+var autoBookingDone = false;
+
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+async function maybeRunAutoBooking() {
+  if (autoBookingDone) return;
+  if (!settingsLoaded || !expensesLoaded) return;
+  autoBookingDone = true;
+  try {
+    await runAutoBooking();
+  } catch(e) {}
+}
+
+async function runAutoBooking() {
+  var groups = buildAboGroups();
+  var now = new Date();
+  var y = now.getFullYear();
+  var m = now.getMonth();
+  var today = now.getDate();
+  var created = 0;
+
+  var keys = Object.keys(groups);
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var cfg = aboConfig[k] || {};
+    if (!cfg.autoBook) continue;
+    // Nur monatliche Abos automatisch buchen
+    if (groups[k].cycle === "jahr") continue;
+    var bookDay = cfg.bookDay || 1;
+    if (bookDay > 28) bookDay = 28;
+    if (today < bookDay) continue;
+
+    // Schon diesen Monat gebucht?
+    var alreadyBooked = expenses.some(function(e) {
+      if (e.kategorie !== "abos") return false;
+      if (resolveAboKey(aboKey(e.name)) !== k) return false;
+      var d = new Date(e.datum + "T12:00:00");
+      return d.getFullYear() === y && d.getMonth() === m;
+    });
+    if (alreadyBooked) continue;
+
+    var datum = y + "-" + pad2(m + 1) + "-" + pad2(bookDay);
+    try {
+      await addDoc(expensesCol, {
+        name: groups[k].name,
+        betrag: groups[k].betrag,
+        datum: datum,
+        kategorie: "abos",
+        notiz: "Automatisch gebucht",
+        typTags: [],
+        typTag: "",
+        transportTag: "",
+        reiseTag: "",
+        erfasst_am: new Date().toISOString(),
+        autoBooked: true
+      });
+      created++;
+    } catch(err) {}
+  }
+
+  if (created > 0) {
+    showToast(created + " Abo" + (created > 1 ? "s" : "") + " automatisch gebucht");
+  }
+}
+
+
 function renderAbos() {
   var grid = document.getElementById("abosGrid");
   var totalEl = document.getElementById("aboTotal");
@@ -2035,6 +2112,16 @@ window.openAboSheet = function() {
       "<option value='jahr'" + (g.cycle === "jahr" ? " selected" : "") + ">Jaehrlich</option>";
     var variantCount = Object.keys(g.variants).length;
     var variantHint = variantCount > 1 ? "<div class='abo-edit-hint'>" + variantCount + " Schreibweisen zusammengefasst</div>" : "";
+    var cfg = aboConfig[k] || {};
+    var autoChecked = cfg.autoBook ? " checked" : "";
+    var bookDay = cfg.bookDay || 1;
+    var isYear = g.cycle === "jahr";
+    var autoRow = isYear
+      ? "<div class='abo-edit-autonote'>Automatisches Buchen nur bei monatlicher Abrechnung</div>"
+      : "<div class='abo-edit-autorow'>" +
+          "<label class='abo-auto-toggle'><input type='checkbox' class='abo-edit-auto'" + autoChecked + "> Automatisch buchen</label>" +
+          "<span class='abo-auto-day'>am <input type='number' class='abo-edit-day' min='1' max='28' value='" + bookDay + "'>. Tag</span>" +
+        "</div>";
     return "<div class='abo-edit-card' data-key='" + escAttr(k) + "'>" +
       "<input class='abo-edit-name' type='text' value='" + escAttr(g.name) + "' placeholder='Name'>" +
       variantHint +
@@ -2045,6 +2132,7 @@ window.openAboSheet = function() {
       "<div class='abo-edit-row'>" +
         "<select class='abo-edit-merge'>" + mergeOptions + "</select>" +
       "</div>" +
+      autoRow +
     "</div>";
   }).join("");
   openSheet("aboSheet");
@@ -2058,11 +2146,20 @@ window.saveAboTypes = function() {
     var type = card.querySelector(".abo-edit-type").value;
     var mergeInto = card.querySelector(".abo-edit-merge").value;
     var cycle = card.querySelector(".abo-edit-cycle").value;
+    var autoEl = card.querySelector(".abo-edit-auto");
+    var dayEl = card.querySelector(".abo-edit-day");
     if (!aboConfig[k]) aboConfig[k] = {};
     aboConfig[k].name = name;
     aboConfig[k].type = type;
     aboConfig[k].cycle = cycle;
     aboConfig[k].mergeInto = mergeInto || "";
+    aboConfig[k].autoBook = autoEl ? autoEl.checked : false;
+    if (dayEl) {
+      var d = parseInt(dayEl.value, 10);
+      if (isNaN(d) || d < 1) d = 1;
+      if (d > 28) d = 28;
+      aboConfig[k].bookDay = d;
+    }
   });
   saveAboConfigToStorage();
   closeSheets();
