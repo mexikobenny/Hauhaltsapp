@@ -74,8 +74,16 @@
   .cat-bar-name{font-size:14px;font-weight:500;color:var(--text)}
   .cat-bar-amount{font-size:13px;font-weight:600;color:var(--text)}
   .cat-bar-pct{font-size:11px;color:var(--hint);margin-left:6px}
-  .cat-bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
-  .cat-bar-fill{height:100%;border-radius:3px;background:var(--accent)}
+  .cat-bar-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;opacity:0.9}
+  .cat-bar-fill{height:100%;border-radius:2px;background:var(--accent);transition:width 0.3s}
+  .cat-bar-fill.green{background:#A7CBBB}
+  .cat-bar-fill.red{background:#D0A99E}
+  .cat-bar-fill.nobudget{background:var(--border2)}
+  .cat-bar-pct{color:var(--hint)}
+  .cat-bar-pct.red{color:#BE8575}
+  .cat-bar-sub{font-size:10px;color:var(--hint);margin-top:4px}
+  .cat-bar-sub.red{color:#BE8575}
+  .cat-bar-sub.nobudget{color:var(--hint);font-style:italic}
   .month-compare{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
   .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:24px;box-shadow:var(--shadow)}
   .donut-row{display:flex;align-items:center;gap:16px}
@@ -236,6 +244,15 @@
   .abo-status-open{margin-left:auto;font-size:9px;font-weight:600;color:var(--hint);background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:1px 6px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.3px}
   .abo-status-year{margin-left:auto;font-size:9px;font-weight:600;color:#6B8CAE;background:var(--bg);border:1px solid #6B8CAE;border-radius:8px;padding:1px 6px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.3px}
   .abo-kachel-sub{font-size:9px;color:var(--hint);margin-top:1px}
+  .jahr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:8px}
+  .view-toggle{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+  .view-toggle-txt{font-size:11px;font-weight:600;color:var(--hint);transition:color 0.15s}
+  .view-switch{position:relative;display:inline-block;width:38px;height:22px}
+  .view-switch input{opacity:0;width:0;height:0;position:absolute}
+  .view-slider{position:absolute;inset:0;background:var(--border2);border-radius:22px;transition:background 0.2s}
+  .view-slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.2)}
+  .view-switch input:checked + .view-slider{background:var(--accent)}
+  .view-switch input:checked + .view-slider:before{transform:translateX(16px)}
   .abo-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .abo-total{font-size:12px;color:var(--muted)}
   .abo-edit-btn{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit;padding:0}
@@ -336,7 +353,14 @@
   </div>
   <div class="section-title">Diesen Monat</div>
   <div class="cat-bar-list" id="dashCatBarsMonat"></div>
-  <div class="section-title" id="sectionJahr" style="display:none">Dieses Jahr</div>
+  <div class="jahr-header" id="sectionJahr" style="display:none">
+    <span class="section-title" id="jahrTitle" style="margin-bottom:0">Dieses Jahr</span>
+    <label class="view-toggle">
+      <span class="view-toggle-txt" id="viewTxtMonat">Monat</span>
+      <span class="view-switch"><input type="checkbox" id="yearViewSwitch" onchange="toggleYearCatsView()"><span class="view-slider"></span></span>
+      <span class="view-toggle-txt" id="viewTxtJahr">Jahr</span>
+    </label>
+  </div>
   <div class="cat-bar-list" id="dashCatBarsJahr"></div>
   <div class="section-title">Verlauf (6 Monate)</div>
   <div class="chart-card">
@@ -540,6 +564,7 @@ var budgets = {};
 var aboTypes = {};
 var aboConfig = {};
 var YEAR_BUDGET_CATS = ["reisen", "kleidung", "sonstiges"];
+var yearCatsMode = localStorage.getItem("haushaltsapp_yearCatsMode") || "jahr";
 var CAT_COLORS = {
   lebensmittel: "#5B8C7B", restaurant: "#C28A7A", drinks: "#D4A373", reisen: "#6B8CAE",
   nahverkehr: "#A89BB8", miete: "#8A8D6B", gesundheit: "#B07A8C", kleidung: "#7BA098",
@@ -861,16 +886,35 @@ function renderDashboard() {
 
   function makeCatBar(id, amt, maxAmt, isYear) {
     var cat = getCat(id);
-    var pct = total > 0 ? Math.round(amt / total * 100) : 0;
-    var barW = Math.round(amt / maxAmt * 100);
-    var budgetBar = renderBudgetBar(id);
+    var hasBudget = budgets[id] && budgets[id].limit;
+    var barW, colorClass, pctLabel, subText;
+
+    if (hasBudget) {
+      var limit = isYear ? budgets[id].limit * 12 : budgets[id].limit;
+      var usagePct = limit > 0 ? Math.round(amt / limit * 100) : 0;
+      barW = Math.min(usagePct, 100);
+      var rest = limit - amt;
+      colorClass = usagePct <= 100 ? "green" : "red";
+      pctLabel = usagePct + "%";
+      subText = rest >= 0
+        ? formatEur(rest) + " uebrig von " + formatEur(limit)
+        : formatEur(Math.abs(rest)) + " ueber Budget (" + formatEur(limit) + ")";
+    } else {
+      // Kein Budget gesetzt: dezenter Balken relativ zur groessten Kategorie
+      barW = maxAmt > 0 ? Math.round(amt / maxAmt * 100) : 0;
+      colorClass = "nobudget";
+      pctLabel = "";
+      subText = "kein Budget";
+    }
+
+    var pctHtml = pctLabel ? "<span class='cat-bar-pct " + colorClass + "'>" + pctLabel + "</span>" : "";
     return "<div class='cat-bar-row' style='cursor:pointer' data-catid='" + id + "' onclick='handleCatClick(this)'>" +
       "<div class='cat-bar-top'>" +
         "<span class='cat-bar-name'>" + cat.icon + " " + cat.label + (isYear ? " <span style='font-size:10px;color:var(--hint)'>(Jahr)</span>" : "") + " <span style='font-size:12px;color:var(--accent)'>&rsaquo;</span></span>" +
-        "<span><span class='cat-bar-amount'>" + formatEur(amt) + "</span>" + (!isYear ? "<span class='cat-bar-pct'>" + pct + "%</span>" : "") + "</span>" +
+        "<span><span class='cat-bar-amount'>" + formatEur(amt) + "</span>" + pctHtml + "</span>" +
       "</div>" +
-      "<div class='cat-bar-track'><div class='cat-bar-fill' style='width:" + barW + "%'></div></div>" +
-      budgetBar +
+      "<div class='cat-bar-track'><div class='cat-bar-fill " + colorClass + "' style='width:" + barW + "%'></div></div>" +
+      "<div class='cat-bar-sub " + colorClass + "'>" + subText + "</div>" +
       "</div>";
   }
 
@@ -881,9 +925,16 @@ function renderDashboard() {
   var jahrEl = document.getElementById("dashCatBarsJahr");
   var jahrSection = document.getElementById("sectionJahr");
   if (jahrCats.length) {
-    jahrSection.style.display = "";
+    jahrSection.style.display = "flex";
+    var showYear = yearCatsMode === "jahr";
+    var jahrAmounts = showYear ? catTotalsJahr : catTotalsMonat;
+    var maxJ = Math.max.apply(null, jahrCats.map(function(id) { return jahrAmounts[id] || 0; }).concat([1]));
+    document.getElementById("jahrTitle").textContent = showYear ? "Dieses Jahr" : "Dieser Monat";
+    document.getElementById("yearViewSwitch").checked = showYear;
+    document.getElementById("viewTxtMonat").style.color = showYear ? "var(--hint)" : "var(--accent)";
+    document.getElementById("viewTxtJahr").style.color = showYear ? "var(--accent)" : "var(--hint)";
     jahrEl.innerHTML = jahrCats.map(function(id) {
-      return makeCatBar(id, catTotalsJahr[id] || 0, maxJahr, true);
+      return makeCatBar(id, jahrAmounts[id] || 0, maxJ, showYear);
     }).join("");
   } else {
     jahrSection.style.display = "none";
@@ -899,6 +950,13 @@ function renderDashboard() {
   renderAbos();
   attachReiseClicks();
 }
+
+window.toggleYearCatsView = function() {
+  var checked = document.getElementById("yearViewSwitch").checked;
+  yearCatsMode = checked ? "jahr" : "monat";
+  localStorage.setItem("haushaltsapp_yearCatsMode", yearCatsMode);
+  renderDashboard();
+};
 
 function populateChartCatSelect() {
   var sel = document.getElementById("chartCatSelect");
@@ -1785,8 +1843,8 @@ function isYearView(catId) {
   return budgets[catId] && budgets[catId].view === "jahr";
 }
 
-function getBudgetSpent(catId) {
-  if (isYearView(catId)) {
+function getBudgetSpent(catId, showYear) {
+  if (showYear) {
     return expenses.filter(function(e) {
       return e.kategorie === catId && e.datum && e.datum.startsWith(viewYear.toString());
     }).reduce(function(s, e) { return s + e.betrag; }, 0);
@@ -1797,12 +1855,11 @@ function getBudgetSpent(catId) {
   }
 }
 
-function renderBudgetBar(catId) {
+function renderBudgetBar(catId, showYear) {
   if (!budgets[catId] || !budgets[catId].limit) return "";
   var monthLimit = budgets[catId].limit;
-  var isYear = isYearView(catId);
-  var limit = isYear ? monthLimit * 12 : monthLimit;
-  var spent = getBudgetSpent(catId);
+  var limit = showYear ? monthLimit * 12 : monthLimit;
+  var spent = getBudgetSpent(catId, showYear);
   var pct = Math.round(spent / limit * 100);
   var colorClass = pct < 70 ? "green" : pct < 90 ? "yellow" : "red";
   var rest = limit - spent;
